@@ -4,7 +4,7 @@ A living, open-access database of EEG studies on architecture, urbanism, and
 nature: the substrate for systematic and ongoing review.
 
 - **Live app:** <https://neurourbanism-db.streamlit.app/>
-- **Citation (latest snapshot):** _replace with Zenodo DOI after first release_
+- **Citation (latest snapshot):** [10.5281/zenodo.20023201](https://zenodo.org/records/20023201)
 - **Submit a paper:** through the [website form](https://neurourbanism-db.streamlit.app/Submit_a_paper) or via a [PR](https://github.com/Randomidous/NeuroUrbanism-DB/pulls).
 
 This database is a fork-style sibling of

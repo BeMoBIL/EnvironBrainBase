@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Submit via the website (preferred)
+    url: https://YOUR-APP-URL.streamlit.app/Submit_a_paper
+    about: The fastest path. Opens a Pull Request automatically.

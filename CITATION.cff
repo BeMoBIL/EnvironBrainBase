@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+title: "NeuroUrbanism-DB: a living database of EEG studies on architecture, urbanism, and nature"
+message: "If you use this database, please cite the specific Zenodo-minted version DOI listed in the README."
+type: dataset
+authors:
+  - family-names: Wieske
+    given-names: Roy Eric
+    affiliation: "Technische Universität Berlin, Germany"
+  - family-names: Sander
+    given-names: Isabelle
+    affiliation: "Technische Universität Berlin, Germany"
+  - family-names: Estudillo
+    given-names: Jorge
+    affiliation: "Technische Universität Berlin, Germany"
+  - family-names: Gramann
+    given-names: Klaus
+    affiliation: "Technische Universität Berlin, Germany"
+repository-code: "https://github.com/Randomidous/NeuroUrbanism-DB"
+license: CC-BY-4.0
+keywords:
+  - EEG
+  - neuroscience
+  - architecture
+  - urbanism
+  - nature
+  - biophilic design
+  - systematic review
+abstract: >-
+  Curated, openly accessible database of empirical EEG studies investigating
+  human neurophysiological responses to architectural, urban, and natural
+  environments. Records include citation, sample, paradigm, EEG acquisition
+  setup, analysis approach, mobility scoring, and replicability assessment.

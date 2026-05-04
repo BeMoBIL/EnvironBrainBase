@@ -1,0 +1,32 @@
+{
+  "title": "NeuroUrbanism-DB: a living database of EEG studies on architecture, urbanism, and nature",
+  "description": "Curated, openly accessible database of empirical EEG studies investigating human neurophysiological responses to architectural, urban, and natural environments. Records include citation, sample, paradigm, EEG acquisition setup, analysis approach, mobility scoring, and replicability assessment. The database is maintained as a flat CSV under git, with submissions accepted via a Streamlit web form that opens GitHub pull requests. Each tagged release is a citable snapshot.",
+  "creators": [
+    {
+      "name": "Wieske, Roy Eric",
+      "affiliation": "Technische Universität Berlin, Germany"
+    }
+  ],
+  "keywords": [
+    "EEG",
+    "neuroscience",
+    "architecture",
+    "urbanism",
+    "nature",
+    "biophilic design",
+    "environmental psychology",
+    "neuroergonomics",
+    "systematic review",
+    "open data"
+  ],
+  "license": "CC-BY-4.0",
+  "access_right": "open",
+  "upload_type": "dataset",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Randomidous/NeuroUrbanism-DB",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
+# Licensing
+
 MIT License
 
-Copyright (c) 2026 Zander Labs
+Copyright (c) 2026 BeMoBIL
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +24,10 @@ SOFTWARE.
 
 ---
 
-Note on data licensing
-======================
+## Note on data licensing
 
 The contents of `data/` are licensed separately under
 Creative Commons Attribution 4.0 International (CC-BY-4.0):
-https://creativecommons.org/licenses/by/4.0/
+<https://creativecommons.org/licenses/by/4.0/>
 
 Attribution: cite the Zenodo DOI of the release you used (see README).

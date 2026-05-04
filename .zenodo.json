@@ -3,8 +3,8 @@
   "description": "Curated, openly accessible database of empirical EEG studies investigating human neurophysiological responses to architectural, urban, and natural environments. Records include citation, sample, paradigm, EEG acquisition setup, analysis approach, mobility scoring, and replicability assessment. The database is maintained as a flat CSV under git, with submissions accepted via a Streamlit web form that opens GitHub pull requests. Each tagged release is a citable snapshot.",
   "creators": [
     {
-      "name": "Zander, Roy",
-      "affiliation": "Zander Labs"
+      "name": "Wieske, Roy Eric",
+      "affiliation": "Technische Universität Berlin, Germany"
     }
   ],
   "keywords": [

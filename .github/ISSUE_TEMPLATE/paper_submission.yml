@@ -1,0 +1,108 @@
+name: Submit a paper
+description: Suggest a paper to add to the database. A maintainer will create the CSV row.
+title: "[Submit] <First-author et al.> (<Year>): <Short title>"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing! Use this form if you can't or don't want to use the website's submission form.
+        Required fields are marked. Anything you don't know, leave blank: a maintainer can fill it.
+
+  - type: input
+    id: doi_link
+    attributes:
+      label: DOI or stable URL
+      placeholder: "https://doi.org/10.xxxx/..."
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+    validations:
+      required: true
+
+  - type: input
+    id: authors_short
+    attributes:
+      label: Authors (short form, e.g. "Smith et al.")
+    validations:
+      required: true
+
+  - type: input
+    id: year
+    attributes:
+      label: Year
+      placeholder: "2024"
+    validations:
+      required: true
+
+  - type: input
+    id: journal
+    attributes:
+      label: Journal / venue
+
+  - type: input
+    id: authors_full
+    attributes:
+      label: Full author list with first names
+      placeholder: "Jane Smith, John Doe, …"
+
+  - type: dropdown
+    id: sample_category
+    attributes:
+      label: Sample category
+      options:
+        - "1 · Architecture"
+        - "2 · Urbanism"
+        - "3 · Nature"
+        - "Multiple (specify in notes)"
+        - "Not sure"
+
+  - type: dropdown
+    id: lab_realworld
+    attributes:
+      label: Setting
+      options:
+        - "Lab"
+        - "Real-world"
+        - "Mixed"
+        - "Not sure"
+
+  - type: input
+    id: num_participants
+    attributes:
+      label: Number of participants
+
+  - type: input
+    id: eeg_system
+    attributes:
+      label: EEG system / model
+
+  - type: input
+    id: num_channels
+    attributes:
+      label: Number of EEG channels
+
+  - type: textarea
+    id: independent_variable
+    attributes:
+      label: Independent variable(s)
+
+  - type: textarea
+    id: dependent_variable
+    attributes:
+      label: Dependent variable(s)
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else worth flagging
+      placeholder: "Replicability concerns, context, your relationship to the paper, etc."
+
+  - type: input
+    id: contributor
+    attributes:
+      label: Your name (will be credited in the CSV's `contributor` column)

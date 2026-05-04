@@ -1,0 +1,25 @@
+# Backlog of papers awaiting extraction
+# Originally appended at bottom of source spreadsheet under "To be added?".
+# Move each DOI into papers.csv (via the submission form or a manual PR) once extracted.
+
+https://doi.org/10.1016/j.jenvman.2022.116830
+https://doi.org/10.3390/f14061099
+https://doi.org/10.13135/2384-8677/9265
+https://link.springer.com/article/10.1007/s00221-024-06812-z
+https://doi.org/10.1016/j.compeleceng.2023.108878
+https://doi.org/10.1080/01426397.2018.1548586
+https://doi.org/10.1016/j.buildenv.2014.10.003
+https://doi.org/10.3390/buildings14092884
+https://doi.org/10.3390/app15052742
+https://doi.org/10.3390/brainsci15101103
+https://doi.org/10.3390/buildings15071163
+https://doi.org/10.21837/pm.v23i38.1818
+https://link.springer.com/article/10.1007/s10055-025-01211-3
+https://doi.org/10.3389/fpsyg.2023.1139687
+https://doi.org/10.3390/buildings14103316
+https://cognitiveresearchjournal.springeropen.com/articles/10.1186/s41235-020-00247-0
+https://doi.org/10.1111/psyp.14121
+https://doi.org/10.1523/ENEURO.0104-22.2022
+https://doi.org/10.6107/JKHA.2023.34.3.067
+https://doi.org/10.3390/buildings13020467
+https://doi.org/10.1016/j.buildenv.2025.113702

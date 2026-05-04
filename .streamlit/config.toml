@@ -1,0 +1,17 @@
+# Streamlit configuration for NeuroUrbanism-DB.
+# Anything here is also picked up on Streamlit Community Cloud.
+
+[server]
+# Default headless on cloud; harmless locally.
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#2C7A4B"        # urban green
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F4F2"
+textColor = "#1A1A1A"
+font = "sans serif"

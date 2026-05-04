@@ -102,7 +102,7 @@ optional and a maintainer can fill them during review.
 | `system_mobility_label` | full label |
 | `system_mobility_score` | numeric `0`–`4` |
 
-**Participant mobility rubric**
+#### Participant mobility rubric
 
 - `0`: Lying, sitting, or standing still
 - `1`: Constrained head/torso movement (e.g. seated VR with head turn)
@@ -110,7 +110,7 @@ optional and a maintainer can fill them during review.
 - `3`: Walking on a fixed path
 - `4`: Free locomotion in real-world environment
 
-**System mobility rubric**
+#### System mobility rubric
 
 - `0`: Wired desktop amplifier in shielded room
 - `1`: Wired amplifier, ambulatory but tethered
@@ -144,7 +144,7 @@ optional and a maintainer can fill them during review.
 | `replicability_score` | numeric `0`–`3` (lower = more replicable) |
 | `data_availability` | `0`/`1`/`2` (none / on request / public) |
 
-**Replicability rubric**
+#### Replicability rubric
 
 - `0`: Fully replicable: code, data, and detailed methods all available
 - `1`: Methods are detailed enough to reproduce, no data/code
@@ -182,7 +182,7 @@ CSV editing tips:
 - **Encoding:** UTF-8.
 - **Quoting:** quote any cell that contains a comma, newline, or double-quote.
   Most editors do this automatically; don't fight them.
-- **List-valued cells:** separate items with `; ` (semicolon-space). Example:
+- **List-valued cells:** separate items with `;` (semicolon-space). Example:
   `frontal; central; parietal`.
 - **Don't add a column.** If you think a column is missing, open an Issue
   first: schema changes need migration of all existing rows.

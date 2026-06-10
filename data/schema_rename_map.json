@@ -25,6 +25,7 @@
   "num_channels": "num_channels",
   "electrode_type": "electrode_type",
   "electrode_locations": "electrode_locations",
+  "Impedance": "impedance",
   "reference": "reference_electrode",
   "offline_filters": "offline_filters",
   "Offline_High-Pass_(Hz)": "offline_highpass_hz",

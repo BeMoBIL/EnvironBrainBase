@@ -38,9 +38,6 @@ import streamlit as st
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 
-st.set_page_config(
-    page_title="Submit a paper — NeuroUrbanism-DB", page_icon="✉️", layout="centered"
-)
 
 st.title("✉️ Submit a paper")
 st.caption(

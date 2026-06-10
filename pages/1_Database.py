@@ -8,25 +8,146 @@ Two tabs, both driven by the same sidebar filters:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils import load_csv, load_eeg_systems, lookup_eeg_system  # noqa: E402
+
 DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 
-st.set_page_config(
-    page_title="Database: NeuroUrbanism-DB",
-    page_icon="📚",
-    layout="wide",
-    initial_sidebar_state="expanded",
+# ---------------------------------------------------------------------------
+# EEG system lookup (loaded once at import time)
+# ---------------------------------------------------------------------------
+
+@st.cache_resource(show_spinner=False)
+def _get_eeg_systems() -> dict:
+    return load_eeg_systems()
+
+# ---------------------------------------------------------------------------
+# Replicability scoring
+# ---------------------------------------------------------------------------
+
+# Necessary fields (N, max = 8).
+# Column names are the canonical CSV names (see data/schema_rename_map.json).
+#
+# Offline filter setting (offline_lowpass_hz) is a necessary criterion;
+# online/hardware filter settings (filters_amp) are good-to-have.
+# Offline HP is not required — recoverable from SR (per Klaus Gramann / BeMoBIL).
+# Reference captures online OR offline re-reference in a single field (no change).
+_NECESSARY_COLS: list[str] = [
+    "sampling_rate_hz",    # SR_in_Hz
+    "offline_filters",     # was offline filtering applied?
+    "offline_lowpass_hz",  # actual offline LP cutoff (Offline_Low-Pass_(Hz))
+    "num_channels",
+    "electrode_type",
+    "electrode_locations",
+    "reference_electrode", # reference
+    "artifact_rejection",
+]
+
+_N_MAX: int = len(_NECESSARY_COLS)  # 8
+
+# Good-to-have fields (G, max = 5).
+# filters_amp (online/hardware filter settings) moved here from necessary.
+_GOOD_COLS: list[str] = [
+    "filters_amp",         # online / hardware filter settings
+    "channel_interpolation",
+    "impedance",           # Impedance
+    "eeg_company",         # EEG_company
+    "eeg_system",          # EEG_system
+]
+_G_MAX: int = len(_GOOD_COLS)  # 5
+
+# Values treated as absent (case-insensitive, after strip)
+_ABSENT: frozenset[str] = frozenset(
+    {
+        "", "na", "n/a", "nan", "nr", "unknown", "none",
+        "0", "0.0",
+        "na / na", "na/na",
+        "not reported", "not available", "not applicable",
+    }
 )
+
+
+def _is_present(val: object) -> bool:
+    """Return True when a field carries real information."""
+    if pd.isna(val):
+        return False
+    return str(val).strip().lower() not in _ABSENT
+
+
+def _score_row(row: "pd.Series") -> tuple[float, str]:
+    n = sum(_is_present(row.get(c, "")) for c in _NECESSARY_COLS)
+    g = sum(_is_present(row.get(c, "")) for c in _GOOD_COLS)
+
+    # Zone-locked scoring (N_MAX = 8, G_MAX = 5).
+    #   N ≤ 3  →  0–39   (zone 1)
+    #   N 4–7  →  40–79  (zone 2)
+    #   N = 8  →  80–100 (zone 3, "Replicable")
+    if n <= 3:
+        score = round((n / 3) * 39)
+    elif n <= 7:
+        score = round(40 + ((n - 4) / 3) * 39)
+    else:  # n == 8
+        score = round(80 + (g / _G_MAX) * 20)
+
+    label = "Replicable" if n == _N_MAX else "Not Replicable"
+    return float(score), label
+
+
+def compute_replicability(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute replicability score/label dynamically and insert them as early columns."""
+    scores, labels = zip(*df.apply(_score_row, axis=1))
+    df = df.copy()
+    df["replicability_score"] = scores
+    df["replicability_label"] = labels
+    # Move both columns to position 2 (right after authors_short and year)
+    cols = [c for c in df.columns if c not in ("replicability_score", "replicability_label")]
+    cols = cols[:2] + ["replicability_score", "replicability_label"] + cols[2:]
+    return df[cols]
+
+
 
 
 @st.cache_data(show_spinner=False)
 def load_papers() -> pd.DataFrame:
-    df = pd.read_csv(DATA_PATH, dtype=str).fillna("")
+    df = load_csv(DATA_PATH)
+
+    # Normalise eeg_system_mobile_stationary to "stat" / "mobile" / ""
+    _MOB_NORM = {
+        "stat": "stat", "stat - hmd": "stat",
+        "mobile": "mobile", "mob": "mobile", "mobile & stat": "mobile",
+    }
+    df["eeg_system_mobile_stationary"] = (
+        df["eeg_system_mobile_stationary"]
+        .str.lower().str.strip()
+        .map(_MOB_NORM)
+        .fillna("")
+    )
+
+    # Preserve original editor replicability (1-3 scale) before compute overwrites it
+    df["replicability_raw"] = df["replicability_score"]
+
+    df = compute_replicability(df)
+
+    # Derive system_mobility_score from the canonical EEG system lookup.
+    # Falls back to the CSV value only when the system name is not in the YAML.
+    systems = _get_eeg_systems()
+
+    def _lookup_score(row: pd.Series) -> str:
+        info = lookup_eeg_system(str(row.get("eeg_system", "")), systems)
+        if info:
+            return str(info["mobility_score"])
+        # Fallback: use the raw CSV score if present
+        return str(row.get("system_mobility_score", ""))
+
+    df["system_mobility_score"] = df.apply(_lookup_score, axis=1)
+
     for col in (
         "year",
         "num_participants",
@@ -35,6 +156,7 @@ def load_papers() -> pd.DataFrame:
         "participant_mobility_score",
         "system_mobility_score",
         "replicability_score",
+        "replicability_raw",
     ):
         if col in df.columns:
             df[col + "_num"] = pd.to_numeric(df[col], errors="coerce")
@@ -43,7 +165,7 @@ def load_papers() -> pd.DataFrame:
 
 SAMPLE_LABELS = {"1": "Architecture", "2": "Urbanism", "3": "Nature"}
 LAB_LABELS = {"1": "Lab", "2": "Real-world", "3": "Mixed"}
-MOBILE_LABELS = {"stat": "Stationary", "mob": "Mobile"}
+MOBILE_LABELS = {"stat": "Stationary", "mobile": "Mobile"}
 
 
 # --------------------------------------------------------------------------
@@ -229,38 +351,182 @@ def main() -> None:
 
         st.divider()
 
-        display_cols = [
-            "authors_short",
-            "year",
-            "title",
-            "journal",
-            "sample_category",
-            "num_participants",
-            "num_channels",
-            "lab_realworld_binary",
-            "doi_link",
-        ]
-        display_cols = [c for c in display_cols if c in f.columns]
+        # ------------------------------------------------------------------
+        # HTML table with inline EEG system hover tooltips
+        # ------------------------------------------------------------------
+        import html as _html
+        import streamlit.components.v1 as _components
 
-        st.dataframe(
-            f[display_cols].rename(
-                columns={
-                    "authors_short": "Authors",
-                    "year": "Year",
-                    "title": "Title",
-                    "journal": "Journal",
-                    "sample_category": "Cat.",
-                    "num_participants": "N",
-                    "num_channels": "Channels",
-                    "lab_realworld_binary": "Setting",
-                    "doi_link": "DOI / Link",
-                }
-            ),
-            hide_index=True,
-            use_container_width=True,
-            height=520,
-            column_config={"DOI / Link": st.column_config.LinkColumn("DOI / Link")},
+        _SCORE_COLOR = {0:"#c0392b",1:"#e67e22",2:"#f1c40f",3:"#27ae60",4:"#2980b9"}
+        _SCORE_LABEL = {
+            0:"Wired / stationary", 1:"Waist-mounted + cables",
+            2:"Waist-mounted, wireless", 3:"Head-mounted + rucksack",
+            4:"Fully head-mounted",
+        }
+        _sys_lk = _get_eeg_systems()
+
+        def _mob_badge(score_str):
+            try:
+                s = int(float(score_str))
+                c = _SCORE_COLOR.get(s, "#888")
+                dots = "●"*(s+1) + "○"*(4-s)
+                return f"<span style='background:{c};color:#fff;padding:1px 7px;border-radius:10px;font-size:0.78rem;font-weight:600'>{s} {dots}</span>"
+            except (ValueError, TypeError):
+                return f"<span style='color:#aaa'>{_html.escape(str(score_str))}</span>"
+
+        def _eeg_cell(sys_name, score_str):
+            if not sys_name or sys_name.lower() in ("na","n/a",""):
+                return f"<span style='color:#bbb'>—</span>"
+            info = lookup_eeg_system(sys_name, _sys_lk)
+            score_int = None
+            try:
+                score_int = int(info.get("mobility_score", "x"))
+            except (ValueError, TypeError):
+                pass
+            dot_color = _SCORE_COLOR.get(score_int, "#aaa") if score_int is not None else "#aaa"
+            mfr  = _html.escape(str(info.get("manufacturer","—")))
+            ch   = _html.escape(str(info.get("channels","—")))
+            link = info.get("link","")
+            notes = _html.escape(str(info.get("notes","")))
+            slabel = _SCORE_LABEL.get(score_int,"unknown") if score_int is not None else "unknown"
+            link_part = f"<a href='{link}' target='_blank' style='color:#93c5fd'>↗ product page</a>" if link else ""
+            notes_part = f"<em style='color:#aaa;font-size:0.78rem'>{notes}</em><br>" if notes else ""
+            tip = (
+                f"<strong>{_html.escape(sys_name)}</strong><br>"
+                f"Manufacturer: {mfr}<br>"
+                f"Channels: {ch}<br>"
+                f"Mobility: {score_int if score_int is not None else '?'} – {slabel}<br>"
+                f"{notes_part}{link_part}"
+            )
+            tip_escaped = tip.replace("'", "&#39;").replace('"', "&quot;")
+            return (
+                f"<span class='eeg-h' data-tip=\"{tip_escaped}\" "
+                f"style='cursor:default;white-space:nowrap'>"
+                f"<span style='display:inline-block;width:9px;height:9px;border-radius:50%;"
+                f"background:{dot_color};margin-right:5px;vertical-align:middle'></span>"
+                f"{_html.escape(sys_name)}</span>"
+            )
+
+        def _truncate(s, n=60):
+            s = str(s)
+            return _html.escape(s[:n] + "…") if len(s) > n else _html.escape(s)
+
+        header = (
+            "<tr style='position:sticky;top:0;background:#f4f4f2;z-index:2'>"
+            "<th>Authors</th><th>Year</th><th>Title</th><th>Journal</th>"
+            "<th>Cat</th><th>N</th><th>Ch</th>"
+            "<th>EEG System</th><th>Setting</th><th>DOI</th></tr>"
         )
+        _LAB = {"1":"Lab","2":"Real-world","3":"Mixed","stat":"Stationary","mob":"Mobile"}
+        _CAT = {"1":"Arch","2":"Urban","3":"Nature"}
+        rows_html = []
+        for _, row in f.iterrows():
+            cat_raw = str(row.get("sample_category",""))
+            cat_disp = "/".join(_CAT.get(c.strip(),c.strip()) for c in cat_raw.split(",") if c.strip())
+            doi = str(row.get("doi_link","")).strip()
+            doi_html = f"<a href='{_html.escape(doi)}' target='_blank' style='color:#2980b9'>↗</a>" if doi and doi.lower() not in ("","na") else ""
+            setting = _LAB.get(str(row.get("lab_realworld_binary","")).strip(), str(row.get("lab_realworld_binary","")))
+            rows_html.append(
+                f"<tr>"
+                f"<td style='white-space:nowrap'>{_truncate(row.get('authors_short',''),30)}</td>"
+                f"<td>{_html.escape(str(row.get('year','')))}</td>"
+                f"<td class='title-cell'>{_truncate(row.get('title',''),70)}</td>"
+                f"<td>{_truncate(row.get('journal',''),25)}</td>"
+                f"<td style='text-align:center'>{_html.escape(cat_disp)}</td>"
+                f"<td style='text-align:center'>{_html.escape(str(row.get('num_participants','')))}</td>"
+                f"<td style='text-align:center'>{_html.escape(str(row.get('num_channels','')))}</td>"
+                f"<td>{_eeg_cell(str(row.get('eeg_system','')).strip(), str(row.get('system_mobility_score','')))}</td>"
+                f"<td style='white-space:nowrap'>{_html.escape(str(setting))}</td>"
+                f"<td style='text-align:center'>{doi_html}</td>"
+                f"</tr>"
+            )
+
+        table_html = (
+            "<div id='float-tip'></div>"
+            "<div style='max-height:540px;overflow-y:auto;overflow-x:auto'>"
+            "<table style='width:100%;border-collapse:collapse;font-size:0.82rem'>"
+            f"<thead>{header}</thead>"
+            "<tbody style='line-height:1.4'>"
+            + "".join(rows_html)
+            + "</tbody></table></div>"
+        )
+
+        css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+*, body {
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: #1a1a1a;
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+body { background: transparent; padding: 4px 0; }
+table { width: 100%; border-collapse: collapse; }
+table td, table th {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: middle;
+}
+table th {
+  font-weight: 600;
+  font-size: 13px;
+  color: #444;
+  border-bottom: 2px solid #ccc;
+  padding: 8px 10px;
+  background: #f4f4f2;
+}
+table tr:hover td { background: #f0f4ff; }
+.title-cell { max-width: 340px; }
+#float-tip {
+  display: none;
+  position: fixed;
+  background: #1e1e2e;
+  color: #f0f0f0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 280px;
+  z-index: 9999;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+</style>"""
+
+        js = """
+<script>
+(function() {
+  const tip = document.getElementById('float-tip');
+  function attach() {
+    document.querySelectorAll('.eeg-h').forEach(function(el) {
+      if (el._tipBound) return;
+      el._tipBound = true;
+      el.addEventListener('mouseenter', function() {
+        tip.innerHTML = this.dataset.tip;
+        tip.style.display = 'block';
+      });
+      el.addEventListener('mousemove', function(e) {
+        let x = e.clientX + 14, y = e.clientY - 10;
+        if (x + 290 > window.innerWidth) x = e.clientX - 300;
+        if (y + tip.offsetHeight > window.innerHeight) y = e.clientY - tip.offsetHeight - 6;
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+      });
+      el.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+</script>"""
+
+        _components.html(css + table_html + js, height=560, scrolling=False)
+
 
         st.divider()
         st.subheader("Paper detail")
@@ -280,6 +546,55 @@ def main() -> None:
             )
             if chosen is not None:
                 row = f.loc[chosen]
+
+                # EEG system info card
+                sys_name = str(row.get("eeg_system", "")).strip()
+                if sys_name and sys_name.lower() not in ("", "na", "n/a"):
+                    systems_lookup = _get_eeg_systems()
+                    info = lookup_eeg_system(sys_name, systems_lookup)
+                    if info:
+                        _SCORE_COLOR = {
+                            0: "#c0392b", 1: "#e67e22", 2: "#f1c40f",
+                            3: "#27ae60", 4: "#2980b9",
+                        }
+                        _SCORE_LABEL = {
+                            0: "Wired / stationary",
+                            1: "Waist-mounted + cables",
+                            2: "Waist-mounted, wireless",
+                            3: "Head-mounted + rucksack",
+                            4: "Fully head-mounted",
+                        }
+                        score = info.get("mobility_score")
+                        try:
+                            score_int = int(score)
+                            color = _SCORE_COLOR.get(score_int, "#888")
+                            score_text = f"{score_int} – {_SCORE_LABEL.get(score_int, '')}"
+                        except (TypeError, ValueError):
+                            color = "#888"
+                            score_text = "Unknown"
+
+                        link = info.get("link", "")
+                        link_html = (
+                            f"<a href='{link}' target='_blank'>↗ Product page</a>"
+                            if link else ""
+                        )
+                        notes = info.get("notes", "")
+                        st.markdown(
+                            f"""
+<div style='border-left:4px solid {color};padding:10px 16px;background:#f8f8ff;
+            border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.88rem;'>
+  <strong>🔬 EEG System: {info.get('name', sys_name)}</strong><br>
+  Manufacturer: {info.get('manufacturer', '—')} &nbsp;|&nbsp;
+  Channels: {info.get('channels', '—')} &nbsp;|&nbsp;
+  <span style='background:{color};color:#fff;padding:1px 8px;border-radius:10px;
+               font-weight:600'>&nbsp;Mobility {score_text}&nbsp;</span>
+  {"&nbsp;|&nbsp;" + link_html if link_html else ""}
+  {"<br><em style='color:#666'>" + notes + "</em>" if notes else ""}
+</div>
+""",
+                            unsafe_allow_html=True,
+                        )
+
                 with st.expander("Full record", expanded=True):
                     cols = st.columns(2)
                     for i, (k, v) in enumerate(row.items()):
@@ -511,21 +826,20 @@ def main() -> None:
         st.divider()
 
         # ------------------------------------------------------------------
-        # 6. Mobility heatmap (participant × system)
+        # 6. Mobility heatmap (participant x system)
         # ------------------------------------------------------------------
-        st.subheader("Mobility profile: participant × system")
+        st.subheader("Mobility profile: participant x system")
         st.caption(
             "Each cell counts papers with that combination of participant mobility "
             "(0 = still, 4 = free locomotion) and EEG system mobility "
             "(0 = wired desktop, 4 = head-mounted with smartphone). "
-            "Sparse top-right means few studies are doing free real-world recording with truly mobile gear."
         )
-        if {"participant_mobility_score_num", "system_mobility_score_num"}.issubset(
-            f.columns
-        ):
+        if {"participant_mobility_score_num", "system_mobility_score_num"}.issubset(f.columns):
             heat = f.dropna(
                 subset=["participant_mobility_score_num", "system_mobility_score_num"]
             ).copy()
+            heat = heat[heat["system_mobility_score_num"].between(0, 4)]
+            heat = heat[heat["participant_mobility_score_num"].between(0, 4)]
             if not heat.empty:
                 heat["participant"] = heat["participant_mobility_score_num"].astype(int)
                 heat["system"] = heat["system_mobility_score_num"].astype(int)
@@ -538,22 +852,14 @@ def main() -> None:
                     alt.Chart(grid)
                     .mark_rect()
                     .encode(
-                        x=alt.X("system:O", title="System mobility (0–4)"),
-                        y=alt.Y(
-                            "participant:O",
-                            title="Participant mobility (0–4)",
-                            sort="descending",
-                        ),
-                        color=alt.Color(
-                            "count:Q",
-                            title="# of papers",
-                            scale=alt.Scale(scheme="blues"),
-                        ),
+                        x=alt.X("system:O", title="System mobility (0-4)"),
+                        y=alt.Y("participant:O", title="Participant mobility (0-4)", sort="descending"),
+                        color=alt.Color("count:Q", title="# of papers", scale=alt.Scale(scheme="blues")),
                         tooltip=["participant", "system", "count"],
                     )
                     .properties(height=320)
                 )
-                text = (
+                text_layer = (
                     alt.Chart(grid)
                     .mark_text(baseline="middle")
                     .encode(
@@ -565,7 +871,7 @@ def main() -> None:
                         ),
                     )
                 )
-                st.altair_chart(heat_chart + text, use_container_width=True)
+                st.altair_chart(heat_chart + text_layer, use_container_width=True)
 
         st.divider()
 
@@ -574,24 +880,17 @@ def main() -> None:
         # ------------------------------------------------------------------
         st.subheader("Replicability")
         st.caption(
-            "Editor-assigned score from the rubric in CONTRIBUTING.md "
-            "(0 = code+data+methods all available, 3 = not replicable from the paper alone). "
-            "Lower is better."
+            "Editor-assigned score: 1 = fully replicable, 2 = partially, 3 = not replicable from the paper alone. Lower is better."
         )
-        if (
-            "replicability_score_num" in f.columns
-            and f["replicability_score_num"].notna().any()
-        ):
-            rep = (
-                f["replicability_score_num"].dropna().astype(int).reset_index(drop=True)
-            )
+        if "replicability_raw_num" in f.columns and f["replicability_raw_num"].notna().any():
+            rep = f["replicability_raw_num"].dropna().astype(int).reset_index(drop=True)
             rep_df = rep.value_counts().sort_index().reset_index()
             rep_df.columns = ["replicability_score", "count"]
             rep_chart = (
                 alt.Chart(rep_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X("replicability_score:O", title="Replicability score"),
+                    x=alt.X("replicability_score:O", title="Replicability (1=best, 3=worst)"),
                     y=alt.Y("count:Q", title="# of papers"),
                     tooltip=["replicability_score", "count"],
                 )
@@ -605,10 +904,7 @@ def main() -> None:
         # 8. Sample size distribution
         # ------------------------------------------------------------------
         st.subheader("Sample size distribution")
-        st.caption(
-            "Long-tailed by design: a few large studies, many small ones. "
-            "Bins capped at N = 200; anything larger lives in the rightmost bin."
-        )
+        st.caption("Long-tailed by design. Bins capped at N=200.")
         n_df = pd.to_numeric(f.get("num_participants"), errors="coerce").dropna()
         if len(n_df):
             n_df = n_df.clip(upper=200).astype(int).reset_index(drop=True)
@@ -617,21 +913,13 @@ def main() -> None:
                 alt.Chart(ndf)
                 .mark_bar()
                 .encode(
-                    x=alt.X(
-                        "n_participants:Q",
-                        bin=alt.Bin(step=10),
-                        title="N participants (capped at 200)",
-                    ),
+                    x=alt.X("n_participants:Q", bin=alt.Bin(step=10), title="N participants (capped at 200)"),
                     y=alt.Y("count():Q", title="# of papers"),
-                    tooltip=[
-                        alt.Tooltip("n_participants:Q", bin=alt.Bin(step=10)),
-                        "count():Q",
-                    ],
+                    tooltip=[alt.Tooltip("n_participants:Q", bin=alt.Bin(step=10)), "count():Q"],
                 )
                 .properties(height=260)
             )
             st.altair_chart(n_chart, use_container_width=True)
 
 
-if __name__ == "__main__":
-    main()
+main()

@@ -32,17 +32,18 @@ def _get_eeg_systems() -> dict:
 # Replicability scoring
 # ---------------------------------------------------------------------------
 
-# Necessary fields (N, max = 8).
+# Necessary fields (N, max = 9).
 # Column names are the canonical CSV names (see data/schema_rename_map.json).
 #
-# Offline filter setting (offline_lowpass_hz) is a necessary criterion;
-# online/hardware filter settings (filters_amp) are good-to-have.
-# Offline HP is not required — recoverable from SR (per Klaus Gramann / BeMoBIL).
-# Reference captures online OR offline re-reference in a single field (no change).
+# Offline filter criterion: counted as ONE necessary item satisfied when
+#   - offline_filters is present, OR
+#   - both offline_highpass_hz AND offline_lowpass_hz are present.
+# This "either/or" check is handled in _score_row; the three columns are
+# NOT listed in _NECESSARY_COLS (which only contains simple single-field checks).
 _NECESSARY_COLS: list[str] = [
     "sampling_rate_hz",    # SR_in_Hz
-    "offline_filters",     # was offline filtering applied?
-    "offline_lowpass_hz",  # actual offline LP cutoff (Offline_Low-Pass_(Hz))
+    "filters_amp",         # online / hardware filter settings
+    "online_filters",      # were online filters applied?
     "num_channels",
     "electrode_type",
     "electrode_locations",
@@ -50,18 +51,16 @@ _NECESSARY_COLS: list[str] = [
     "artifact_rejection",
 ]
 
-_N_MAX: int = len(_NECESSARY_COLS)  # 8
+_N_MAX: int = len(_NECESSARY_COLS) + 1  # +1 for the offline-filter either/or criterion = 9
 
-# Good-to-have fields (G, max = 5).
-# filters_amp (online/hardware filter settings) moved here from necessary.
+# Good-to-have fields (G, max = 4).
 _GOOD_COLS: list[str] = [
-    "filters_amp",         # online / hardware filter settings
     "channel_interpolation",
     "impedance",           # Impedance
     "eeg_company",         # EEG_company
     "eeg_system",          # EEG_system
 ]
-_G_MAX: int = len(_GOOD_COLS)  # 5
+_G_MAX: int = len(_GOOD_COLS)  # 4
 
 # Values treated as absent (case-insensitive, after strip)
 _ABSENT: frozenset[str] = frozenset(
@@ -81,19 +80,30 @@ def _is_present(val: object) -> bool:
     return str(val).strip().lower() not in _ABSENT
 
 
+def _offline_filter_present(row: "pd.Series") -> bool:
+    """Offline filter criterion: offline_filters present OR both HP+LP cutoffs present."""
+    if _is_present(row.get("offline_filters", "")):
+        return True
+    return (
+        _is_present(row.get("offline_highpass_hz", ""))
+        and _is_present(row.get("offline_lowpass_hz", ""))
+    )
+
+
 def _score_row(row: "pd.Series") -> tuple[float, str]:
     n = sum(_is_present(row.get(c, "")) for c in _NECESSARY_COLS)
+    n += int(_offline_filter_present(row))  # add the offline-filter either/or criterion
     g = sum(_is_present(row.get(c, "")) for c in _GOOD_COLS)
 
-    # Zone-locked scoring (N_MAX = 8, G_MAX = 5).
-    #   N ≤ 3  →  0–39   (zone 1)
-    #   N 4–7  →  40–79  (zone 2)
-    #   N = 8  →  80–100 (zone 3, "Replicable")
+    # Zone-locked scoring (N_MAX = 9, G_MAX = 4).
+    #   N <= 3  ->  0-39   (zone 1)
+    #   N 4-8   ->  40-79  (zone 2)
+    #   N = 9   ->  80-100 (zone 3, "Replicable")
     if n <= 3:
         score = round((n / 3) * 39)
-    elif n <= 7:
-        score = round(40 + ((n - 4) / 3) * 39)
-    else:  # n == 8
+    elif n <= 8:
+        score = round(40 + ((n - 4) / 4) * 39)
+    else:  # n == 9
         score = round(80 + (g / _G_MAX) * 20)
 
     label = "Replicable" if n == _N_MAX else "Not Replicable"
@@ -376,7 +386,7 @@ def main() -> None:
 
         def _eeg_cell(sys_name, score_str):
             if not sys_name or sys_name.lower() in ("na","n/a",""):
-                return f"<span style='color:#bbb'>—</span>"
+                return "<span style='color:#bbb'>—</span>"
             info = lookup_eeg_system(sys_name, _sys_lk)
             score_int = None
             try:

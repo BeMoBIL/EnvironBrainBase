@@ -21,24 +21,25 @@ DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 
 CORE_AUTHORS = [
     {
-        "name": "Roy Eric Wieske",
+        "name": "Klaus Gramann",
         "affiliation": "Technische Universität Berlin, Germany",
-        "role": "Lead developer",
+        "role": "Data curation & review, principal investigator",
     },
     {
-        "name": "Isabelle Sander",
+        "name": "Roy Eric Wieske",
         "affiliation": "Technische Universität Berlin, Germany",
-        "role": "Data curation & review",
+        "role": "Data curation & review, lead developer",
     },
     {
         "name": "Jorge Estudillo",
         "affiliation": "Technische Universität Berlin, Germany",
         "role": "Data curation & review",
     },
+
     {
-        "name": "Klaus Gramann",
+        "name": "Isabelle Sander",
         "affiliation": "Technische Universität Berlin, Germany",
-        "role": "Data curation & review, principal investigator",
+        "role": "Data curation & review",
     },
 ]
 

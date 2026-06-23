@@ -31,6 +31,7 @@ def load_csv(path: Path | None = None) -> pd.DataFrame:
     df = pd.read_csv(p, dtype=str).fillna("")
     rename_map = _load_rename_map()
     df = df.rename(columns=rename_map)
+    df = df.dropna(how="all")
     return df.drop(columns=[c for c in _DROP_COLS if c in df.columns])
 
 

@@ -5,6 +5,8 @@ EEG Research in Environmental Neuroscience"
 Computes every metric reported in the review paper, organised by section.
 Reads papers.csv directly (raw column names, no rename map dependency).
 
+Optionally generates plots for each analysis section if plots is True. Plots are saved to ./exports/ in SVG and PNG formats.
+
 Usage:
     python replicability_assessment.py
     python replicability_assessment.py --csv path/to/papers.csv
@@ -20,6 +22,32 @@ import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency
 
+from plots import (
+    plot_age_coverage,
+    plot_age_ranges,
+    plot_analytic_domain,
+    plot_consumer_grade_distribution,
+    plot_data_availability,
+    plot_frequency_bands,
+    plot_journal_category_pie,
+    plot_mean_age,
+    plot_motivation,
+    plot_multimodal_integration_pie,
+    plot_multimodal_prevalence,
+    plot_non_replicability_by_topic,
+    plot_paradigm_by_research_object,
+    plot_publication_year,
+    plot_replicability_by_venue,
+    plot_replicability_criteria,
+    plot_replicability_summary,
+    plot_research_topic,
+    plot_sex_split,
+    plot_study_design,
+    plot_study_design_by_research_object,
+    plot_top_eeg_systems,
+    plot_top_journals,
+)
+
 # %%
 # =============================================================================
 # CONFIGURATION
@@ -27,11 +55,11 @@ from scipy.stats import chi2_contingency
 
 # --- Replicability criteria (raw CSV column names) ---
 NECESSARY_COLS: dict[str, str] = {
-    "SR_in_Hz": "Sample rate",
-    "filters_amp": "Hardware filter settings",
-    "online_filters": "Online filters applied",
-    "num_channels": "Number of channels",
-    "electrode_type": "Electrode type",
+    "SR_in_Hz":            "Sample rate",
+    # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
+    "online_filters":      "Online filters applied",
+    "num_channels":        "Number of channels",
+    "electrode_type":      "Electrode type",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
@@ -299,15 +327,6 @@ def classify_venue(journal: str) -> str:
     return "Other / Unclassified"
 
 
-def classify_company(company: str) -> str:
-    c = str(company).lower().strip()
-    if any(k in c for k in CONSUMER_COMPANIES):
-        return "consumer"
-    if any(k in c for k in RESEARCH_COMPANIES):
-        return "research"
-    return "other"
-
-
 def parse_multicoded(val: object) -> list[str]:
     """Split '1, 2' or '1,2' style cells into a list of stripped tokens."""
     if pd.isna(val):
@@ -356,6 +375,11 @@ def section_study_design(df: pd.DataFrame) -> None:
     lab_incl_hmd = lab + hmd  # VR/HMD counted as lab
     print(f"  Lab (incl. HMD/VR): {pct(lab_incl_hmd, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, total)}")
+    combined  = df["lab_realworld_binary"].eq(3).sum()
+    hmd       = df["EEG_system_mobile_stationary"].str.lower().str.strip().eq("stat - hmd").sum()
+    #lab_incl_hmd = lab + hmd  # VR/HMD counted as lab -> already included in lab count
+    print(f"  Lab (incl. HMD/VR): {pct(lab, total)}")
+    print(f"    of which HMD/VR:  {pct(hmd, lab)}")
     print(f"  Real-world (mobile): {pct(realworld, total)}")
     print(f"  Combined lab+field:  {pct(combined, total)}")
 
@@ -451,65 +475,67 @@ def section_replicability(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def section_domain(df: pd.DataFrame) -> None:
-    total = len(df)
-    sep("5. ENVIRONMENTAL DOMAIN")
-
-    dom_col = "architecture = 1 urbanism = 2 \nnature = 3"
-    df = df.copy()
-    df["_dom_raw"] = df[dom_col].astype(str).str.strip()
-    df["_dom_primary"] = df["_dom_raw"].apply(
-        lambda v: parse_multicoded(v)[0] if parse_multicoded(v) else ""
-    )
-    df["_dom_multi"] = df["_dom_raw"].apply(lambda v: len(parse_multicoded(v)) > 1)
-
-    multi = df["_dom_multi"].sum()
-    undef = (df["_dom_primary"] == "").sum() + (df["_dom_primary"] == "nan").sum()
-    arch = (df["_dom_primary"] == "1").sum()
-    urban = (df["_dom_primary"] == "2").sum()
-    nature = (df["_dom_primary"] == "3").sum()
-
-    print(f"  Multi-domain papers:   {pct(multi, total)}")
-    print(f"  Unassignable:          {pct(undef, total)}")
-    print(f"  Urbanism (primary):    {pct(urban, total)}")
-    print(f"  Architecture (primary):{pct(arch, total)}")
-    print(f"  Nature (primary):      {pct(nature, total)}")
-
-    # Mobility within domain
-    mob_col = df["EEG_system_mobile_stationary"].str.lower().str.strip()
-    for dom_code, dom_name in [
-        ("1", "Architecture"),
-        ("2", "Urbanism"),
-        ("3", "Nature"),
-    ]:
-        sub = df[df["_dom_primary"] == dom_code]
-        n_sub = len(sub)
-        n_mobile = sub[
-            mob_col.reindex(sub.index).fillna("").str.contains("mobile")
-        ].shape[0]
-        n_hmd = sub[mob_col.reindex(sub.index).fillna("") == "stat - hmd"].shape[0]
-        n_stat = sub[mob_col.reindex(sub.index).fillna("") == "stat"].shape[0]
-        print(f"\n  {dom_name} (n={n_sub}):")
-        print(f"    Stationary lab: {pct(n_stat, n_sub)}")
-        print(f"    HMD/VR:         {pct(n_hmd, n_sub)}")
-        print(f"    Mobile:         {pct(n_mobile, n_sub)}")
-
-    # Non-replicability by domain
-    if "replicable" in df.columns:
-        sep("  Non-replicability by domain")
-        for dom_code, dom_name in [
-            ("1", "Architecture"),
-            ("2", "Urbanism"),
-            ("3", "Nature"),
-        ]:
-            sub = df[df["_dom_primary"] == dom_code]
-            nr = (~sub["replicable"]).sum()
-            print(f"  {dom_name:<15} non-replicable: {pct(nr, len(sub))}")
-
-
 def section_research_focus(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("6. RESEARCH FOCUS & MOTIVATION")
+    sep("5. RESEARCH FOCUS, DOMAIN & MOTIVATION")
+
+    topic_labels = [
+        "Nature & restorative environments",
+        "Architectural & built interior spaces",
+        "Urban outdoor environments",
+        "Multisensory & environmental stimuli",
+        "Methods & technology",
+    ]
+
+    # Build one row per (paper, mapped topic) using Research Topic instead of dom_col.
+    rows = []
+    for _, row in df.iterrows():
+        mapped_topics = [t for t in parse_multicoded(row.get("Research Topic")) if t in topic_labels]
+        if not mapped_topics:
+            continue
+
+        mobility = str(row.get("EEG_system_mobile_stationary", "")).strip().lower()
+        for topic in mapped_topics:
+            rows.append({
+                "topic": topic,
+                "mobility": mobility,
+                "replicable": bool(row.get("replicable", False)),
+            })
+
+    topic_frame = pd.DataFrame(rows)
+
+    if not topic_frame.empty:
+        sep("  Topic-based domain summary (from Research Topic)")
+        topic_counts = topic_frame["topic"].value_counts().reindex(topic_labels).dropna().astype(int)
+        multi_topic = df["Research Topic"].apply(
+            lambda x: len([t for t in parse_multicoded(x) if t in topic_labels]) > 1
+        ).sum()
+        print(f"  Multi-topic papers: {pct(int(multi_topic), total)}")
+        for topic, cnt in topic_counts.items():
+            print(f"  {topic:<42} {pct(int(cnt), total)}")
+
+        sep("  Mobility by topic")
+        for topic in topic_labels:
+            sub = topic_frame[topic_frame["topic"] == topic]
+            if sub.empty:
+                continue
+            n_sub = len(sub)
+            n_stat = sub["mobility"].eq("stat").sum()
+            n_hmd = sub["mobility"].eq("stat - hmd").sum()
+            n_mobile = sub["mobility"].str.contains("mobile", na=False).sum()
+            print(f"  {topic} (n={n_sub}):")
+            print(f"    Stationary lab: {pct(int(n_stat), n_sub)}")
+            print(f"    HMD/VR:         {pct(int(n_hmd), n_sub)}")
+            print(f"    Mobile:         {pct(int(n_mobile), n_sub)}")
+
+        if "replicable" in df.columns:
+            sep("  Non-replicability by topic")
+            for topic in topic_labels:
+                sub = topic_frame[topic_frame["topic"] == topic]
+                if sub.empty:
+                    continue
+                nr = (~sub["replicable"]).sum()
+                print(f"  {topic:<42} {pct(int(nr), len(sub))}")
 
     print("  Research Topic:")
     for topic, cnt in df["Research Topic"].value_counts(dropna=False).head(8).items():
@@ -522,24 +548,13 @@ def section_research_focus(df: pd.DataFrame) -> None:
 
     # Grouped motivation
     mot_lower = df["Motivation"].str.lower().str.strip().fillna("")
-    design_policy = mot_lower.isin(
-        ["design optimisation", "planning & policy evidence"]
-    ).sum()
-    fundamental = mot_lower.eq("fundamental understanding").sum()
-    theory_testing = mot_lower.eq("theory testing").sum()
-    methdev = mot_lower.eq("methodological development").sum()
-    health = mot_lower.eq("health & therapeutic applications").sum()
-    print("\n  Grouped:")
-    print(f"    Design optimisation + planning/policy: {pct(design_policy, total)}")
-    print(f"    Fundamental understanding:             {pct(fundamental, total)}")
-    print(f"    Methodological development:            {pct(methdev, total)}")
-    print(f"    Health & therapeutic:                  {pct(health, total)}")
-    print(f"    Theory testing:                        {pct(theory_testing, total)}")
+    design_policy  = mot_lower.isin(["design optimisation", "planning & policy evidence"]).sum()
+    print(f"    Grouped Percentage Design optimisation + planning/policy: {pct(design_policy, total)}")
 
 
 def section_eeg_features(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("7. EEG FEATURES & ANALYTIC DOMAIN")
+    sep("6. EEG FEATURES & ANALYTIC DOMAIN")
 
     # Parse EEG_features_cat (may be multi-coded: "1, 2")
     feat_col = "EEG_features_cat"
@@ -615,7 +630,7 @@ def section_eeg_features(df: pd.DataFrame) -> None:
 
 def section_multimodal(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("8. MULTIMODAL ACQUISITION & INTEGRATION")
+    sep("7. MULTIMODAL ACQUISITION & INTEGRATION")
 
     eeg_only = df["other_measures"].isna().sum()
     multimodal = total - eeg_only
@@ -659,7 +674,7 @@ def section_multimodal(df: pd.DataFrame) -> None:
 
 def section_hardware(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("9. EEG HARDWARE")
+    sep("8. EEG HARDWARE")
 
     # Channel counts
     ch = pd.to_numeric(df["num_channels"], errors="coerce")
@@ -683,17 +698,18 @@ def section_hardware(df: pd.DataFrame) -> None:
     # EEG company / device
     sep("  EEG company (top 12)")
     comp = df["EEG_company"].dropna().astype(str).str.strip()
-    comp_n = len(comp)
     for company, cnt in comp.value_counts().head(12).items():
-        grade = classify_company(company)
-        print(f"  {company:<35} {pct(cnt, total)}  [{grade}]")
+        print(f"  {company:<35} {pct(cnt, total)}")
 
-    # Consumer vs research grade
-    grades = comp.apply(classify_company).value_counts()
-    print(f"\n  Consumer-grade:  {pct(grades.get('consumer', 0), total)}")
-    print(f"  Research-grade:  {pct(grades.get('research', 0), total)}")
-    print(f"  Other/unknown:   {pct(grades.get('other', 0), total)}")
-    print(f"  Not reported:    {pct(total - comp_n, total)}")
+    # Consumer vs medical grade from explicit coding column
+    grade_col = "System grade (medical vs consumer)"
+    if grade_col in df.columns:
+        grades = df[grade_col].fillna("NA").astype(str).str.strip().str.lower().value_counts()
+        print(f"\n  Consumer-grade:     {pct(grades.get('consumer', 0), total)}")
+        print(f"  Medical-grade:      {pct(grades.get('medical', 0), total)}")
+        print(f"  NA / not reported:  {pct(grades.get('na', 0) + grades.get('nan', 0), total)}")
+    else:
+        print(f"\n  System-grade column missing: '{grade_col}'")
 
     # Top EEG systems
     sep("  EEG system (top 12)")
@@ -708,7 +724,7 @@ def section_hardware(df: pd.DataFrame) -> None:
 
 def section_geography(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("10. GEOGRAPHY")
+    sep("9. GEOGRAPHY")
 
     country = df["Country first Author Affiliation"].str.lower().str.strip()
     print("  Top 15 countries:")
@@ -737,7 +753,7 @@ def section_geography(df: pd.DataFrame) -> None:
 
 def section_open_science(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("11. OPEN SCIENCE (data availability & pre-registration)")
+    sep("10. OPEN SCIENCE (data availability & pre-registration)")
 
     da = df["Data Availability"]
     open_repo = da.eq(2.0).sum()
@@ -749,13 +765,10 @@ def section_open_science(df: pd.DataFrame) -> None:
     print(f"  Available on request (1): {pct(on_request, total)}")
     print(f"  No statement (code 0):    {pct(no_stmt, total)}")
     print(f"  Not coded / NaN:          {pct(not_coded, total)}")
-    print("\n  Note: pre-registration is not a separate column in the current CSV.")
-    print("        The 6% / 28 studies figure requires a dedicated pre-reg field.")
-
 
 def section_publication_venue(df: pd.DataFrame) -> None:
     total = len(df)
-    sep("12. PUBLICATION VENUE")
+    sep("11. PUBLICATION VENUE")
 
     df = df.copy()
     df["_venue"] = df["Journal"].apply(classify_venue)
@@ -810,8 +823,7 @@ def section_publication_venue(df: pd.DataFrame) -> None:
 # MAIN
 # =============================================================================
 
-
-def main(csv_path: Path) -> None:
+def main(csv_path: Path, plots: bool = True) -> None:
     df_raw = pd.read_csv(csv_path)
     df = df_raw.dropna(subset=["Title"]).copy()
     # Drop rows where Title is whitespace only
@@ -823,17 +835,49 @@ def main(csv_path: Path) -> None:
     print("=" * 70)
 
     section_corpus_overview(df)
+    if plots:
+        plot_publication_year(df)
     section_study_design(df)
+    if plots:
+        plot_study_design(df)
     section_demographics(df)
+    if plots:
+        plot_mean_age(df)
+        plot_age_ranges(df)
+        plot_age_coverage(df)
+        plot_sex_split(df)
     df = section_replicability(df)  # adds replicable / n_necessary columns
-    section_domain(df)
+    if plots:
+        plot_replicability_criteria(df)
+        plot_replicability_summary(df)
     section_research_focus(df)
+    if plots:
+        plot_paradigm_by_research_object(df)
+        plot_study_design_by_research_object(df)
+        plot_research_topic(df)
+        plot_non_replicability_by_topic(df)
+        plot_motivation(df)
     section_eeg_features(df)
+    if plots:
+        plot_analytic_domain(df)
+        plot_frequency_bands(df)
     section_multimodal(df)
+    if plots:
+        plot_multimodal_prevalence(df)
+        plot_multimodal_integration_pie(df)
     section_hardware(df)
+    if plots:
+        plot_consumer_grade_distribution(df)
+        plot_top_eeg_systems(df)
     section_geography(df)
     section_open_science(df)
+    if plots:
+        plot_data_availability(df)
     section_publication_venue(df)
+    if plots:
+        plot_top_journals(df)
+        plot_journal_category_pie(df)
+        plot_replicability_by_venue(df)
 
     print("\n" + "=" * 70)
     print("  DONE")
@@ -852,7 +896,13 @@ if __name__ == "__main__":
         / "papers.csv",
         help="Path to papers.csv  (default: ../NeuroUrbanism-DB/data/papers.csv)",
     )
+    parser.add_argument(
+        "--plots",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Generate plots alongside the textual analysis (use --no-plots to skip them)",
+    )
     args = parser.parse_args()
     if not args.csv.exists():
         raise FileNotFoundError(f"CSV not found: {args.csv}")
-    main(args.csv)
+    main(args.csv, plots=args.plots)

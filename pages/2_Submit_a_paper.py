@@ -35,9 +35,10 @@ from pathlib import Path
 import pandas as pd
 import requests
 import streamlit as st
+import yaml
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
-
+EEG_YAML_PATH = Path(__file__).parent.parent / "data" / "eeg_systems.yaml"
 
 st.title("✉️ Submit a paper")
 st.caption(
@@ -66,7 +67,84 @@ def load_columns() -> list[str]:
     return list(pd.read_csv(DATA_PATH, dtype=str, nrows=1).columns)
 
 
+@st.cache_data(show_spinner=False)
+def load_eeg_lookup() -> dict[str, dict]:
+    """Return a dict keyed by system name (case-preserved) with all YAML fields."""
+    with open(EEG_YAML_PATH, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    return {s["name"]: s for s in data.get("systems", [])}
+
+
 COLUMNS = load_columns()
+EEG_LOOKUP = load_eeg_lookup()
+EEG_NAMES_SORTED = [""] + sorted(EEG_LOOKUP.keys(), key=str.lower)
+
+MOB_OPTIONS = ["", "stat", "mob"]
+
+
+# ---------- Session-state initialisation ----------
+# Keys shared between the EEG picker (sidebar) and the bound form widgets.
+_SS_DEFAULTS: dict[str, str] = {
+    "_eeg_picker": "",
+    "f_eeg_system": "",
+    "f_eeg_company": "",
+    "f_num_channels": "",
+    "f_eeg_mob": "",
+}
+for _k, _v in _SS_DEFAULTS.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+
+# ---------- Autofill callback ----------
+def _on_eeg_pick() -> None:
+    """Called when the EEG picker changes. Writes into the form-field keys."""
+    chosen = st.session_state.get("_eeg_picker", "")
+    if chosen and chosen in EEG_LOOKUP:
+        info = EEG_LOOKUP[chosen]
+        st.session_state["f_eeg_system"] = chosen
+        st.session_state["f_eeg_company"] = info.get("manufacturer", "")
+        channels = info.get("channels")
+        st.session_state["f_num_channels"] = str(channels) if channels else ""
+        mob_score = info.get("mobility_score", 0)
+        st.session_state["f_eeg_mob"] = "stat" if mob_score == 0 else "mob"
+    else:
+        # Picker cleared: reset so user can enter values manually
+        st.session_state["f_eeg_system"] = ""
+        st.session_state["f_eeg_company"] = ""
+        st.session_state["f_num_channels"] = ""
+        st.session_state["f_eeg_mob"] = ""
+
+
+# ---------- Sidebar EEG picker ----------
+# Must be declared OUTSIDE st.form so on_change fires immediately (not on submit).
+with st.sidebar:
+    st.markdown("### 🔍 EEG system picker")
+    st.caption(
+        "Select a known EEG system to auto-fill manufacturer, channel count, "
+        "and mobility in the form."
+    )
+    st.selectbox(
+        "Choose EEG system",
+        options=EEG_NAMES_SORTED,
+        key="_eeg_picker",
+        on_change=_on_eeg_pick,
+        format_func=lambda v: v if v else "— type to search —",
+    )
+    picked = st.session_state.get("_eeg_picker", "")
+    if picked and picked in EEG_LOOKUP:
+        info = EEG_LOOKUP[picked]
+        mob_score = info.get("mobility_score", 0)
+        st.markdown(
+            f"**Manufacturer:** {info.get('manufacturer', '—')}  \n"
+            f"**Channels:** {info.get('channels', '—')}  \n"
+            f"**Mobility:** {'Stationary' if mob_score == 0 else 'Mobile'} "
+            f"(score {mob_score}/4)"
+        )
+        if info.get("notes"):
+            st.caption(info["notes"])
+        if info.get("link"):
+            st.markdown(f"[Product page]({info['link']})")
 
 
 # ---------- Form ----------
@@ -90,7 +168,7 @@ with st.form("submit_form", clear_on_submit=False):
     doi_link = st.text_input("DOI or link", help="Required if available")
 
     st.subheader("Sample & setting")
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     sample_category = c1.selectbox(
         "Sample category",
         options=["", "1", "2", "3", "1, 2", "2, 3", "1, 3", "1, 2, 3"],
@@ -115,25 +193,30 @@ with st.form("submit_form", clear_on_submit=False):
             "3": "3 · Mixed",
         }.get(v, v),
     )
-    eeg_system_mobile_stationary = c3.selectbox(
-        "EEG system mobility",
-        options=["", "stat", "mob"],
-        format_func=lambda v: {"": "—", "stat": "Stationary", "mob": "Mobile"}.get(
-            v, v
-        ),
-    )
 
     c1, c2, c3 = st.columns(3)
     num_participants = c1.text_input("N participants")
     age_range = c2.text_input("Age range (e.g. 18–35)")
     sex_perc_male = c3.text_input("% male (e.g. 27%)")
 
+    # EEG setup — fields bound to session_state keys so sidebar picker can fill them.
     st.subheader("EEG setup")
-    c1, c2 = st.columns(2)
-    eeg_system = c1.text_input("EEG system / model")
-    eeg_company = c2.text_input("Manufacturer")
+    st.caption("Use the **EEG system picker** in the sidebar to auto-fill the fields below.")
+
     c1, c2, c3 = st.columns(3)
-    num_channels = c1.text_input("Channels")
+    eeg_system_mobile_stationary = c1.selectbox(
+        "EEG system mobility",
+        options=MOB_OPTIONS,
+        format_func=lambda v: {"": "—", "stat": "Stationary", "mob": "Mobile"}.get(v, v),
+        key="f_eeg_mob",
+    )
+
+    c1, c2 = st.columns(2)
+    eeg_system = c1.text_input("EEG system / model", key="f_eeg_system")
+    eeg_company = c2.text_input("Manufacturer", key="f_eeg_company")
+
+    c1, c2, c3 = st.columns(3)
+    num_channels = c1.text_input("Channels", key="f_num_channels")
     sampling_rate_hz = c2.text_input("Sampling rate (Hz)")
     reference_electrode = c3.text_input("Reference")
 

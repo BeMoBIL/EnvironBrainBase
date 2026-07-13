@@ -21,8 +21,12 @@ def _stats() -> dict:
     df["year_num"] = pd.to_numeric(df["year"], errors="coerce")
     return {
         "n_papers": len(df),
-        "year_min": int(df["year_num"].min(skipna=True)) if df["year_num"].notna().any() else None,
-        "year_max": int(df["year_num"].max(skipna=True)) if df["year_num"].notna().any() else None,
+        "year_min": int(df["year_num"].min(skipna=True))
+        if df["year_num"].notna().any()
+        else None,
+        "year_max": int(df["year_num"].max(skipna=True))
+        if df["year_num"].notna().any()
+        else None,
         "n_arch": int((df["sample_category"].str.contains("1", na=False)).sum()),
         "n_urban": int((df["sample_category"].str.contains("2", na=False)).sum()),
         "n_nature": int((df["sample_category"].str.contains("3", na=False)).sum()),
@@ -33,7 +37,9 @@ def main() -> None:
     s = _stats()
 
     st.title("🧠 NeuroUrbanism-DB")
-    st.subheader("A living, open-access database of EEG studies on architecture, urbanism, and nature")
+    st.subheader(
+        "A living, open-access database of EEG studies on architecture, urbanism, and nature"
+    )
 
     st.markdown(
         "This tool tracks empirical EEG research on how built and natural "
@@ -116,7 +122,6 @@ def main() -> None:
         "GitHub PRs as the submission pipeline) and apply it to "
         "neuro-urbanism literature."
     )
-
 
 
 main()

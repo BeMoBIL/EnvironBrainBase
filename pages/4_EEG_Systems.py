@@ -52,6 +52,7 @@ SCORE_DESCRIPTION = {
 # Score badge HTML
 # ---------------------------------------------------------------------------
 
+
 def _score_badge(score: int | None) -> str:
     if score is None:
         return "<span style='color:#aaa'>—</span>"
@@ -69,6 +70,7 @@ def _score_badge(score: int | None) -> str:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     st.title("🔬 EEG Systems")
@@ -186,9 +188,7 @@ def main() -> None:
         "<th style='padding:8px 12px'>Link</th>"
         "<th style='padding:8px 12px'>Notes</th>"
         "</tr></thead>"
-        "<tbody>"
-        + "".join(rows_html)
-        + "</tbody></table>"
+        "<tbody>" + "".join(rows_html) + "</tbody></table>"
     )
 
     st.markdown(table_html, unsafe_allow_html=True)
@@ -198,7 +198,6 @@ def main() -> None:
         "To add or update a system, edit **data/eeg_systems.yaml** and submit a pull request. "
         "Changes take effect immediately on the next app reload."
     )
-
 
 
 main()

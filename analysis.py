@@ -657,8 +657,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--csv",
         type=Path,
-        default=Path(__file__).parent.parent / "NeuroUrbanism-DB" / "data" / "papers.csv",
-        help="Path to papers.csv  (default: ../NeuroUrbanism-DB/data/papers.csv)",
+        default=Path(__file__).parent.parent
+        / "EnviroBrainBase"
+        / "data"
+        / "papers.csv",
+        help="Path to papers.csv  (default: ../EnviroBrainBase/data/papers.csv)",
     )
     args = parser.parse_args()
     if not args.csv.exists():

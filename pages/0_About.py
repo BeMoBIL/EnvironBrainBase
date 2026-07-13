@@ -1,5 +1,5 @@
 """
-NeuroUrbanism-DB: About / landing page.
+EnviroBrainBase: About / landing page.
 """
 
 from __future__ import annotations
@@ -32,8 +32,10 @@ def _stats() -> dict:
 def main() -> None:
     s = _stats()
 
-    st.title("🧠 NeuroUrbanism-DB")
-    st.subheader("A living, open-access database of EEG studies on architecture, urbanism, and nature")
+    st.title("🧠 EnviroBrainBase")
+    st.subheader(
+        "A living, open-access database of EEG studies on architecture, urbanism, and nature"
+    )
 
     st.markdown(
         "This tool tracks empirical EEG research on how built and natural "
@@ -72,7 +74,7 @@ def main() -> None:
         "the brain, has grown rapidly across architecture, environmental "
         "psychology, neuroergonomics, and public health. The literature is "
         "scattered across disciplines and journals, with heterogeneous "
-        "methodology and inconsistent reporting. NeuroUrbanism-DB is built on "
+        "methodology and inconsistent reporting. EnviroBrainBase is built on "
         "a systematic review of EEG studies in this space, presented as a "
         "queryable, continuously growing database rather than a frozen "
         "appendix in a paper. The aim is to give researchers, designers, and "
@@ -93,23 +95,23 @@ def main() -> None:
 
     st.markdown(
         "If you would rather edit the CSV directly, see "
-        "[CONTRIBUTING.md](https://github.com/Randomidous/NeuroUrbanism-DB/blob/main/CONTRIBUTING.md) "
+        "[CONTRIBUTING.md](https://github.com/Randomidous/EnviroBrainBase/blob/main/CONTRIBUTING.md) "
         "for the manual PR workflow and full schema documentation."
     )
 
     st.markdown("## Citation")
     st.markdown(
-        "If you use NeuroUrbanism-DB in your work, please cite the **specific "
+        "If you use EnviroBrainBase in your work, please cite the **specific "
         "release version** you used (e.g. `v1.0`), not `main`. Each tagged "
         "release has its own Zenodo DOI; the latest version is listed in the "
-        "[repository README](https://github.com/Randomidous/NeuroUrbanism-DB#readme). "
+        "[repository README](https://github.com/Randomidous/EnviroBrainBase#readme). "
         "Citing a fixed version makes your results reproducible while letting "
         "the database itself keep evolving."
     )
 
     st.markdown("## Related")
     st.markdown(
-        "NeuroUrbanism-DB is a fork-style sibling of "
+        "EnviroBrainBase is a fork-style sibling of "
         "[InterBrainDB](https://websites.fraunhofer.de/interbraindb/) (Fraunhofer IAO), "
         "a living database of hyperscanning studies. We share the same "
         "structural design (Streamlit front-end, flat CSV source of truth, "

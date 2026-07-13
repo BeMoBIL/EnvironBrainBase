@@ -1,5 +1,5 @@
 {
-  "title": "NeuroUrbanism-DB: a living database of EEG studies on architecture, urbanism, and nature",
+  "title": "EnviroBrainBase: a living database of EEG studies on architecture, urbanism, and nature",
   "description": "Curated, openly accessible database of empirical EEG studies investigating human neurophysiological responses to architectural, urban, and natural environments. Records include citation, sample, paradigm, EEG acquisition setup, analysis approach, mobility scoring, and replicability assessment. The database is maintained as a flat CSV under git, with submissions accepted via a Streamlit web form that opens GitHub pull requests. Each tagged release is a citable snapshot.",
   "creators": [
     {
@@ -24,7 +24,7 @@
   "upload_type": "dataset",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/Randomidous/NeuroUrbanism-DB",
+      "identifier": "https://github.com/Randomidous/EnviroBrainBase",
       "relation": "isSupplementTo",
       "scheme": "url"
     }

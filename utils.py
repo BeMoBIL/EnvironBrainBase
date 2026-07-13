@@ -1,5 +1,5 @@
 """
-Shared utilities for NeuroUrbanism-DB Streamlit pages.
+Shared utilities for EnviroBrainBase Streamlit pages.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# Contributing to NeuroUrbanism-DB
+# Contributing to EnviroBrainBase
 
 Thanks for helping grow the database. There are three ways to contribute, in
 order of how much friction they cost you:
@@ -167,8 +167,8 @@ optional and a maintainer can fill them during review.
 If you'd rather edit the CSV directly:
 
 ```bash
-git clone https://github.com/Randomidous/NeuroUrbanism-DB.git
-cd NeuroUrbanism-DB
+git clone https://github.com/Randomidous/EnviroBrainBase.git
+cd EnviroBrainBase
 git checkout -b add/firstauthor-year
 # edit data/papers.csv: append a row, keep column order
 git add data/papers.csv

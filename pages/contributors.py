@@ -1,5 +1,5 @@
 """
-NeuroUrbanism-DB: Contributors page.
+EnviroBrainBase: Contributors page.
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ def _contribution_stats() -> pd.DataFrame:
 def main() -> None:
     st.title("👥 Contributors")
     st.markdown(
-        "NeuroUrbanism-DB is built and maintained by a team at "
+        "EnviroBrainBase is built and maintained by a team at "
         "Technische Universität Berlin, with contributions from the wider "
         "neuro-urbanism community."
     )
@@ -147,7 +147,7 @@ def main() -> None:
 
     st.markdown(
         "**Repository:** "
-        "[github.com/Randomidous/NeuroUrbanism-DB](https://github.com/Randomidous/NeuroUrbanism-DB)"
+        "[github.com/Randomidous/EnviroBrainBase](https://github.com/Randomidous/EnviroBrainBase)"
     )
 
 main()

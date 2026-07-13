@@ -27,88 +27,199 @@ from scipy.stats import chi2_contingency
 
 # --- Replicability criteria (raw CSV column names) ---
 NECESSARY_COLS: dict[str, str] = {
-    "SR_in_Hz":            "Sample rate",
-    "filters_amp":         "Hardware filter settings",
-    "online_filters":      "Online filters applied",
-    "num_channels":        "Number of channels",
-    "electrode_type":      "Electrode type",
+    "SR_in_Hz": "Sample rate",
+    "filters_amp": "Hardware filter settings",
+    "online_filters": "Online filters applied",
+    "num_channels": "Number of channels",
+    "electrode_type": "Electrode type",
     "electrode_locations": "Electrode locations",
-    "reference":           "Reference scheme",
-    "artifact_rejection":  "Artifact rejection",
+    "reference": "Reference scheme",
+    "artifact_rejection": "Artifact rejection",
     # offline filter handled separately as either/or (see offline_filter_present)
 }
 OFFLINE_COLS = {
-    "flag":     "offline_filters",
+    "flag": "offline_filters",
     "highpass": "Offline_High-Pass_(Hz)",
-    "lowpass":  "Offline_Low-Pass_(Hz)",
+    "lowpass": "Offline_Low-Pass_(Hz)",
 }
 GOOD_COLS: dict[str, str] = {
     "channel_interpolation": "Channel interpolation",
-    "Impedance":             "Impedance",
-    "EEG_company":           "EEG company",
-    "EEG_system":            "EEG system",
+    "Impedance": "Impedance",
+    "EEG_company": "EEG company",
+    "EEG_system": "EEG system",
 }
 N_MAX = len(NECESSARY_COLS) + 1  # 9 (8 simple + 1 offline either/or)
 
-ABSENT: frozenset[str] = frozenset({
-    "", "na", "n/a", "nan", "nr", "unknown", "none",
-    "0", "0.0", "na / na", "na/na",
-    "not reported", "not available", "not applicable",
-})
+ABSENT: frozenset[str] = frozenset(
+    {
+        "",
+        "na",
+        "n/a",
+        "nan",
+        "nr",
+        "unknown",
+        "none",
+        "0",
+        "0.0",
+        "na / na",
+        "na/na",
+        "not reported",
+        "not available",
+        "not applicable",
+    }
+)
 
 # --- EEG feature category codes ---
-FEAT_LABELS = {"1": "Time domain (ERP)", "2": "Frequency domain",
-               "3": "Connectivity", "4": "Source localisation", "9": "Proprietary"}
+FEAT_LABELS = {
+    "1": "Time domain (ERP)",
+    "2": "Frequency domain",
+    "3": "Connectivity",
+    "4": "Source localisation",
+    "9": "Proprietary",
+}
 
 # --- Consumer vs research-grade EEG companies ---
 CONSUMER_COMPANIES = {
-    "emotiv", "neurosky", "muse", "interaxon", "kingfar", "ergolab",
-    "openbci", "neurosity", "brainlink", "mindmedia", "mindo",
+    "emotiv",
+    "neurosky",
+    "muse",
+    "interaxon",
+    "kingfar",
+    "ergolab",
+    "openbci",
+    "neurosity",
+    "brainlink",
+    "mindmedia",
+    "mindo",
 }
 RESEARCH_COMPANIES = {
-    "brain products", "brainproducts", "compumedics", "neuroscan",
-    "biosemi", "ant neuro", "g.tec", "gtec", "egi", "electrical geodesics",
-    "nihon kohden", "natus", "biopac", "mitsar", "micromed", "xltek",
-    "noldus", "acticap",
+    "brain products",
+    "brainproducts",
+    "compumedics",
+    "neuroscan",
+    "biosemi",
+    "ant neuro",
+    "g.tec",
+    "gtec",
+    "egi",
+    "electrical geodesics",
+    "nihon kohden",
+    "natus",
+    "biopac",
+    "mitsar",
+    "micromed",
+    "xltek",
+    "noldus",
+    "acticap",
 }
 
 # --- Journal venue classification (keyword-based) ---
 VENUE_KEYWORDS = {
     "Architecture / Built-environment / Design": [
-        "building", "architect", "construction", "facility", "facilities",
-        "habitat", "indoor", "interior", "structural", "built environment",
-        "design stud", "design research",
+        "building",
+        "architect",
+        "construction",
+        "facility",
+        "facilities",
+        "habitat",
+        "indoor",
+        "interior",
+        "structural",
+        "built environment",
+        "design stud",
+        "design research",
     ],
     "Nature / Environment / Landscape / Health": [
-        "environment", "nature", "landscape", "forest", "urban forest",
-        "green", "ecological", "ecology", "land", "public health",
-        "health promot", "epidemi", "preventive", "environ res",
-        "sustainability", "sustainable", "cities", "urban plan",
-        "frontiers in public", "int j environ",
+        "environment",
+        "nature",
+        "landscape",
+        "forest",
+        "urban forest",
+        "green",
+        "ecological",
+        "ecology",
+        "land",
+        "public health",
+        "health promot",
+        "epidemi",
+        "preventive",
+        "environ res",
+        "sustainability",
+        "sustainable",
+        "cities",
+        "urban plan",
+        "frontiers in public",
+        "int j environ",
     ],
     "Engineering / Acoustics / Technology": [
-        "engineer", "acoustic", "applied sci", "sensor", "ieee",
-        "signal process", "measurement", "instrum", "comput",
-        "simulation", "technolog",
+        "engineer",
+        "acoustic",
+        "applied sci",
+        "sensor",
+        "ieee",
+        "signal process",
+        "measurement",
+        "instrum",
+        "comput",
+        "simulation",
+        "technolog",
     ],
     "Neuroscience / Psychology": [
-        "neurosci", "psychol", "brain", "cognit", "neural", "behav",
-        "neuroimag", "psychophysiol", "neuroergon", "affect",
-        "front hum neurosci", "front psychol", "j environ psychol",
-        "sci rep", "scientific reports", "plos one", "elife",
-        "j cog neurosci", "psychophysiology", "neuroimage",
-        "j neurosci", "pnas", "euro j neurosci", "cerebral cortex",
-        "eneuro", "brain sci",
+        "neurosci",
+        "psychol",
+        "brain",
+        "cognit",
+        "neural",
+        "behav",
+        "neuroimag",
+        "psychophysiol",
+        "neuroergon",
+        "affect",
+        "front hum neurosci",
+        "front psychol",
+        "j environ psychol",
+        "sci rep",
+        "scientific reports",
+        "plos one",
+        "elife",
+        "j cog neurosci",
+        "psychophysiology",
+        "neuroimage",
+        "j neurosci",
+        "pnas",
+        "euro j neurosci",
+        "cerebral cortex",
+        "eneuro",
+        "brain sci",
     ],
 }
 
 # Western countries (for geographic analysis)
 WESTERN = {
-    "usa", "uk", "germany", "australia", "canada", "netherlands",
-    "sweden", "norway", "denmark", "finland", "france", "italy",
-    "spain", "portugal", "switzerland", "austria", "belgium",
-    "new zealand", "ireland", "greece", "poland", "czech republic",
-    "hungary", "israel",
+    "usa",
+    "uk",
+    "germany",
+    "australia",
+    "canada",
+    "netherlands",
+    "sweden",
+    "norway",
+    "denmark",
+    "finland",
+    "france",
+    "italy",
+    "spain",
+    "portugal",
+    "switzerland",
+    "austria",
+    "belgium",
+    "new zealand",
+    "ireland",
+    "greece",
+    "poland",
+    "czech republic",
+    "hungary",
+    "israel",
 }
 
 
@@ -117,10 +228,11 @@ WESTERN = {
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def sep(title: str, width: int = 70) -> None:
     print(f"\n{'=' * width}")
     print(f"  {title}")
-    print('=' * width)
+    print("=" * width)
 
 
 def pct(n: int, total: int) -> str:
@@ -137,9 +249,8 @@ def offline_filter_present(row: pd.Series) -> bool:
     """Satisfied if offline_filters is present OR both HP+LP cutoffs are present."""
     if is_present(row.get(OFFLINE_COLS["flag"], "")):
         return True
-    return (
-        is_present(row.get(OFFLINE_COLS["highpass"], ""))
-        and is_present(row.get(OFFLINE_COLS["lowpass"], ""))
+    return is_present(row.get(OFFLINE_COLS["highpass"], "")) and is_present(
+        row.get(OFFLINE_COLS["lowpass"], "")
     )
 
 
@@ -170,12 +281,18 @@ def classify_venue(journal: str) -> str:
     # Neuroscience/Psychology checked first (takes priority over generic keywords)
     for label, kws in [
         ("Neuroscience / Psychology", VENUE_KEYWORDS["Neuroscience / Psychology"]),
-        ("Architecture / Built-environment / Design",
-             VENUE_KEYWORDS["Architecture / Built-environment / Design"]),
-        ("Nature / Environment / Landscape / Health",
-             VENUE_KEYWORDS["Nature / Environment / Landscape / Health"]),
-        ("Engineering / Acoustics / Technology",
-             VENUE_KEYWORDS["Engineering / Acoustics / Technology"]),
+        (
+            "Architecture / Built-environment / Design",
+            VENUE_KEYWORDS["Architecture / Built-environment / Design"],
+        ),
+        (
+            "Nature / Environment / Landscape / Health",
+            VENUE_KEYWORDS["Nature / Environment / Landscape / Health"],
+        ),
+        (
+            "Engineering / Acoustics / Technology",
+            VENUE_KEYWORDS["Engineering / Acoustics / Technology"],
+        ),
     ]:
         if any(kw in j for kw in kws):
             return label
@@ -203,6 +320,7 @@ def parse_multicoded(val: object) -> list[str]:
 # ANALYSIS SECTIONS
 # =============================================================================
 
+
 def section_corpus_overview(df: pd.DataFrame) -> None:
     total = len(df)
     sep("1. CORPUS OVERVIEW")
@@ -216,17 +334,25 @@ def section_corpus_overview(df: pd.DataFrame) -> None:
     print(f"\n  Total participants (sum): {total_part:,}")
     print(f"  Participant N reporting:  {n_part.notna().sum()} studies")
     print(f"  Median N per study:       {n_part.median():.0f}")
-    print(f"  IQR:                      {n_part.quantile(0.25):.0f} – {n_part.quantile(0.75):.0f}")
+    print(
+        f"  IQR:                      {n_part.quantile(0.25):.0f} – {n_part.quantile(0.75):.0f}"
+    )
     print(f"  Range:                    {int(n_part.min())} – {int(n_part.max())}")
 
 
 def section_study_design(df: pd.DataFrame) -> None:
     total = len(df)
     sep("2. STUDY DESIGN  (lab / real-world / combined)")
-    lab       = df["lab_realworld_binary"].eq(1).sum()
+    lab = df["lab_realworld_binary"].eq(1).sum()
     realworld = df["lab_realworld_binary"].eq(2).sum()
-    combined  = df["lab_realworld_binary"].eq(3).sum()
-    hmd       = df["EEG_system_mobile_stationary"].str.lower().str.strip().eq("stat - hmd").sum()
+    combined = df["lab_realworld_binary"].eq(3).sum()
+    hmd = (
+        df["EEG_system_mobile_stationary"]
+        .str.lower()
+        .str.strip()
+        .eq("stat - hmd")
+        .sum()
+    )
     lab_incl_hmd = lab + hmd  # VR/HMD counted as lab
     print(f"  Lab (incl. HMD/VR): {pct(lab_incl_hmd, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, total)}")
@@ -234,7 +360,12 @@ def section_study_design(df: pd.DataFrame) -> None:
     print(f"  Combined lab+field:  {pct(combined, total)}")
 
     sep("  Mobility breakdown (EEG_system_mobile_stationary)")
-    mob = df["EEG_system_mobile_stationary"].str.lower().str.strip().value_counts(dropna=False)
+    mob = (
+        df["EEG_system_mobile_stationary"]
+        .str.lower()
+        .str.strip()
+        .value_counts(dropna=False)
+    )
     for val, cnt in mob.items():
         print(f"    {str(val):<30} {pct(cnt, total)}")
 
@@ -247,12 +378,14 @@ def section_demographics(df: pd.DataFrame) -> None:
     age = pd.to_numeric(df["mean_age_participants"], errors="coerce")
     age_n = age.notna().sum()
     print(f"  Mean age reported: {age_n} of {total} studies")
-    print(f"  Median study mean age: {age.median():.1f} y  (range {age.min():.2f} – {age.max():.2f})")
+    print(
+        f"  Median study mean age: {age.median():.1f} y  (range {age.min():.2f} – {age.max():.2f})"
+    )
     age_valid = age.dropna()
-    minors    = (age_valid < 18).sum()
-    ya        = ((age_valid >= 18) & (age_valid < 30)).sum()
-    adults    = ((age_valid >= 30) & (age_valid < 50)).sum()
-    older     = (age_valid >= 50).sum()
+    minors = (age_valid < 18).sum()
+    ya = ((age_valid >= 18) & (age_valid < 30)).sum()
+    adults = ((age_valid >= 30) & (age_valid < 50)).sum()
+    older = (age_valid >= 50).sum()
     print(f"  Age groups (of {age_n} reporting):")
     print(f"    < 18:    {pct(minors, age_n)}")
     print(f"    18–29:   {pct(ya, age_n)}")
@@ -264,9 +397,9 @@ def section_demographics(df: pd.DataFrame) -> None:
     sex_n = len(sex_raw)
     print(f"\n  Sex composition reported: {sex_n} of {total} studies")
     print(f"  Median % male: {sex_raw.median():.1f}%")
-    balanced    = ((sex_raw >= 40) & (sex_raw <= 60)).sum()
-    maj_female  = (sex_raw < 40).sum()
-    maj_male    = (sex_raw > 60).sum()
+    balanced = ((sex_raw >= 40) & (sex_raw <= 60)).sum()
+    maj_female = (sex_raw < 40).sum()
+    maj_male = (sex_raw > 60).sum()
     print(f"  Balanced (40–60% male): {pct(balanced, sex_n)}")
     print(f"  Majority female (<40%): {pct(maj_female, sex_n)}")
     print(f"  Majority male   (>60%): {pct(maj_male, sex_n)}")
@@ -279,7 +412,7 @@ def section_replicability(df: pd.DataFrame) -> pd.DataFrame:
     scored = df.apply(score_row, axis=1, result_type="expand")
     df = pd.concat([df, scored], axis=1)
 
-    replicable     = df["replicable"].sum()
+    replicable = df["replicable"].sum()
     non_replicable = total - replicable
 
     print(f"  Replicable (all {N_MAX} criteria): {pct(replicable, total)}")
@@ -295,12 +428,12 @@ def section_replicability(df: pd.DataFrame) -> pd.DataFrame:
     rates.sort(key=lambda x: x[1])
     for label, rate in rates:
         bar = "#" * round(rate * 30)
-        print(f"  {label:<35} {100*rate:5.1f}%  {bar}")
+        print(f"  {label:<35} {100 * rate:5.1f}%  {bar}")
 
     sep("  Good-to-have reporting rates")
     for col, label in GOOD_COLS.items():
         rate = df[f"good_{col}"].mean()
-        print(f"  {label:<35} {100*rate:5.1f}%")
+        print(f"  {label:<35} {100 * rate:5.1f}%")
 
     sep("  Distribution of criteria met")
     dist = df["n_necessary"].value_counts().sort_index()
@@ -311,7 +444,9 @@ def section_replicability(df: pd.DataFrame) -> pd.DataFrame:
     sep("  Replicable papers")
     rep = df[df["replicable"]][["Authors", "Year", "Title"]]
     for _, row in rep.iterrows():
-        print(f"  [{int(row['Year'])}] {str(row['Authors'])[:35]:<35} {str(row['Title'])[:55]}")
+        print(
+            f"  [{int(row['Year'])}] {str(row['Authors'])[:35]:<35} {str(row['Title'])[:55]}"
+        )
 
     return df
 
@@ -328,11 +463,11 @@ def section_domain(df: pd.DataFrame) -> None:
     )
     df["_dom_multi"] = df["_dom_raw"].apply(lambda v: len(parse_multicoded(v)) > 1)
 
-    multi   = df["_dom_multi"].sum()
-    undef   = (df["_dom_primary"] == "").sum() + (df["_dom_primary"] == "nan").sum()
-    arch    = (df["_dom_primary"] == "1").sum()
-    urban   = (df["_dom_primary"] == "2").sum()
-    nature  = (df["_dom_primary"] == "3").sum()
+    multi = df["_dom_multi"].sum()
+    undef = (df["_dom_primary"] == "").sum() + (df["_dom_primary"] == "nan").sum()
+    arch = (df["_dom_primary"] == "1").sum()
+    urban = (df["_dom_primary"] == "2").sum()
+    nature = (df["_dom_primary"] == "3").sum()
 
     print(f"  Multi-domain papers:   {pct(multi, total)}")
     print(f"  Unassignable:          {pct(undef, total)}")
@@ -342,12 +477,18 @@ def section_domain(df: pd.DataFrame) -> None:
 
     # Mobility within domain
     mob_col = df["EEG_system_mobile_stationary"].str.lower().str.strip()
-    for dom_code, dom_name in [("1", "Architecture"), ("2", "Urbanism"), ("3", "Nature")]:
+    for dom_code, dom_name in [
+        ("1", "Architecture"),
+        ("2", "Urbanism"),
+        ("3", "Nature"),
+    ]:
         sub = df[df["_dom_primary"] == dom_code]
         n_sub = len(sub)
-        n_mobile = sub[mob_col.reindex(sub.index).fillna("").str.contains("mobile")].shape[0]
-        n_hmd    = sub[mob_col.reindex(sub.index).fillna("") == "stat - hmd"].shape[0]
-        n_stat   = sub[mob_col.reindex(sub.index).fillna("") == "stat"].shape[0]
+        n_mobile = sub[
+            mob_col.reindex(sub.index).fillna("").str.contains("mobile")
+        ].shape[0]
+        n_hmd = sub[mob_col.reindex(sub.index).fillna("") == "stat - hmd"].shape[0]
+        n_stat = sub[mob_col.reindex(sub.index).fillna("") == "stat"].shape[0]
         print(f"\n  {dom_name} (n={n_sub}):")
         print(f"    Stationary lab: {pct(n_stat, n_sub)}")
         print(f"    HMD/VR:         {pct(n_hmd, n_sub)}")
@@ -356,7 +497,11 @@ def section_domain(df: pd.DataFrame) -> None:
     # Non-replicability by domain
     if "replicable" in df.columns:
         sep("  Non-replicability by domain")
-        for dom_code, dom_name in [("1","Architecture"),("2","Urbanism"),("3","Nature")]:
+        for dom_code, dom_name in [
+            ("1", "Architecture"),
+            ("2", "Urbanism"),
+            ("3", "Nature"),
+        ]:
             sub = df[df["_dom_primary"] == dom_code]
             nr = (~sub["replicable"]).sum()
             print(f"  {dom_name:<15} non-replicable: {pct(nr, len(sub))}")
@@ -377,11 +522,13 @@ def section_research_focus(df: pd.DataFrame) -> None:
 
     # Grouped motivation
     mot_lower = df["Motivation"].str.lower().str.strip().fillna("")
-    design_policy  = mot_lower.isin(["design optimisation", "planning & policy evidence"]).sum()
-    fundamental    = mot_lower.eq("fundamental understanding").sum()
+    design_policy = mot_lower.isin(
+        ["design optimisation", "planning & policy evidence"]
+    ).sum()
+    fundamental = mot_lower.eq("fundamental understanding").sum()
     theory_testing = mot_lower.eq("theory testing").sum()
-    methdev        = mot_lower.eq("methodological development").sum()
-    health         = mot_lower.eq("health & therapeutic applications").sum()
+    methdev = mot_lower.eq("methodological development").sum()
+    health = mot_lower.eq("health & therapeutic applications").sum()
     print("\n  Grouped:")
     print(f"    Design optimisation + planning/policy: {pct(design_policy, total)}")
     print(f"    Fundamental understanding:             {pct(fundamental, total)}")
@@ -396,13 +543,27 @@ def section_eeg_features(df: pd.DataFrame) -> None:
 
     # Parse EEG_features_cat (may be multi-coded: "1, 2")
     feat_col = "EEG_features_cat"
-    has_erp   = df[feat_col].astype(str).str.contains(r"\b1\b", regex=True, na=False).sum()
-    has_freq  = df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False).sum()
-    has_conn  = df[feat_col].astype(str).str.contains(r"\b3\b", regex=True, na=False).sum()
-    has_src   = df[feat_col].astype(str).str.contains(r"\b4\b", regex=True, na=False).sum()
-    has_prop  = df[feat_col].astype(str).str.contains(r"(?:9|propriat)", regex=True, na=False).sum()
-    both_12   = df[feat_col].astype(str).str.contains(r"\b1\b", na=False) & \
-                df[feat_col].astype(str).str.contains(r"\b2\b", na=False)
+    has_erp = (
+        df[feat_col].astype(str).str.contains(r"\b1\b", regex=True, na=False).sum()
+    )
+    has_freq = (
+        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False).sum()
+    )
+    has_conn = (
+        df[feat_col].astype(str).str.contains(r"\b3\b", regex=True, na=False).sum()
+    )
+    has_src = (
+        df[feat_col].astype(str).str.contains(r"\b4\b", regex=True, na=False).sum()
+    )
+    has_prop = (
+        df[feat_col]
+        .astype(str)
+        .str.contains(r"(?:9|propriat)", regex=True, na=False)
+        .sum()
+    )
+    both_12 = df[feat_col].astype(str).str.contains(r"\b1\b", na=False) & df[
+        feat_col
+    ].astype(str).str.contains(r"\b2\b", na=False)
     n_both_12 = both_12.sum()
 
     print(f"  Frequency domain:           {pct(has_freq, total)}")
@@ -417,20 +578,29 @@ def section_eeg_features(df: pd.DataFrame) -> None:
     ps = df["EEG_parameter_space"].astype(str)
     # Unicode characters used in the CSV
     alpha_pat = r"[⍺α]|alpha"
-    beta_pat  = r"[𝛽β]|beta"
+    beta_pat = r"[𝛽β]|beta"
     theta_pat = r"[𝜃θ]|theta"
-    gamma_pat = r"[λγ]|gamma"   # λ is used as gamma in this CSV
+    gamma_pat = r"[λγ]|gamma"  # λ is used as gamma in this CSV
     delta_pat = r"[δ]|delta"
 
-    freq_papers = df[df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False)]
+    freq_papers = df[
+        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False)
+    ]
     n_freq = len(freq_papers)
     ps_freq = freq_papers["EEG_parameter_space"].astype(str)
 
-    for band, pat in [("Alpha", alpha_pat), ("Beta", beta_pat), ("Theta", theta_pat),
-                      ("Gamma (λ)", gamma_pat), ("Delta", delta_pat)]:
+    for band, pat in [
+        ("Alpha", alpha_pat),
+        ("Beta", beta_pat),
+        ("Theta", theta_pat),
+        ("Gamma (λ)", gamma_pat),
+        ("Delta", delta_pat),
+    ]:
         n_band = ps_freq.str.contains(pat, case=False, regex=True, na=False).sum()
-        n_all  = ps.str.contains(pat, case=False, regex=True, na=False).sum()
-        print(f"  {band:<12} in freq sub-corpus: {pct(n_band, n_freq)}  |  full corpus: {pct(n_all, total)}")
+        n_all = ps.str.contains(pat, case=False, regex=True, na=False).sum()
+        print(
+            f"  {band:<12} in freq sub-corpus: {pct(n_band, n_freq)}  |  full corpus: {pct(n_all, total)}"
+        )
 
     # Alpha separately from alpha_para
     alpha_any = df["alpha_para"].isin([1.0, 2.0]).sum()
@@ -438,8 +608,8 @@ def section_eeg_features(df: pd.DataFrame) -> None:
 
     # ICA usage
     ica_yes = df["ica_used"].eq(1.0).sum()
-    ica_no  = df["ica_used"].eq(0.0).sum()
-    ica_n   = ica_yes + ica_no
+    ica_no = df["ica_used"].eq(0.0).sum()
+    ica_n = ica_yes + ica_no
     print(f"\n  ICA used: {pct(ica_yes, ica_n)} (of {ica_n} reporting studies)")
 
 
@@ -447,7 +617,7 @@ def section_multimodal(df: pd.DataFrame) -> None:
     total = len(df)
     sep("8. MULTIMODAL ACQUISITION & INTEGRATION")
 
-    eeg_only   = df["other_measures"].isna().sum()
+    eeg_only = df["other_measures"].isna().sum()
     multimodal = total - eeg_only
     print(f"  EEG only (no other_measures):  {pct(eeg_only, total)}")
     print(f"  Multimodal acquisition:        {pct(multimodal, total)}")
@@ -455,17 +625,17 @@ def section_multimodal(df: pd.DataFrame) -> None:
     # Parse modalities from free-text other_measures
     om = df["other_measures"].dropna().astype(str).str.lower()
     modalities = {
-        "ECG / HRV":       om.str.contains(r"ecg|hrv|heart rate", na=False),
-        "EDA":             om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
-        "Eye-tracking":    om.str.contains(r"eye.?track|eyetrack", na=False),
-        "Blood pressure":  om.str.contains(r"blood.?press", na=False),
-        "Skin temperature":om.str.contains(r"skin.?temp|temperature", na=False),
-        "PPG":             om.str.contains(r"\bppg\b|photopleth", na=False),
-        "Respiration":     om.str.contains(r"resp|breath", na=False),
-        "EMG":             om.str.contains(r"\bemg\b|electromyo", na=False),
-        "Motion / GPS":    om.str.contains(r"\bgps\b|motion|accel|inertial", na=False),
-        "EOG":             om.str.contains(r"\beog\b|electrooculo", na=False),
-        "Cortisol":        om.str.contains(r"cortisol", na=False),
+        "ECG / HRV": om.str.contains(r"ecg|hrv|heart rate", na=False),
+        "EDA": om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
+        "Eye-tracking": om.str.contains(r"eye.?track|eyetrack", na=False),
+        "Blood pressure": om.str.contains(r"blood.?press", na=False),
+        "Skin temperature": om.str.contains(r"skin.?temp|temperature", na=False),
+        "PPG": om.str.contains(r"\bppg\b|photopleth", na=False),
+        "Respiration": om.str.contains(r"resp|breath", na=False),
+        "EMG": om.str.contains(r"\bemg\b|electromyo", na=False),
+        "Motion / GPS": om.str.contains(r"\bgps\b|motion|accel|inertial", na=False),
+        "EOG": om.str.contains(r"\beog\b|electrooculo", na=False),
+        "Cortisol": om.str.contains(r"cortisol", na=False),
     }
     print(f"\n  Modality prevalence (of {multimodal} multimodal studies):")
     for mod, mask in modalities.items():
@@ -474,11 +644,17 @@ def section_multimodal(df: pd.DataFrame) -> None:
 
     # Integration
     fusion = df["Fusion EEG-Other Modalities"].eq(1.0).sum()
-    subj   = df["Fusion EEG-Subjective"].eq(1.0).sum()
-    print(f"\n  Cross-modal analytical integration (Fusion EEG-Other): {pct(fusion, total)}")
-    print(f"  EEG + subjective fusion:                                {pct(subj, total)}")
+    subj = df["Fusion EEG-Subjective"].eq(1.0).sum()
+    print(
+        f"\n  Cross-modal analytical integration (Fusion EEG-Other): {pct(fusion, total)}"
+    )
+    print(
+        f"  EEG + subjective fusion:                                {pct(subj, total)}"
+    )
     if multimodal > 0:
-        print(f"  Integration rate within multimodal studies: {pct(fusion, multimodal)}")
+        print(
+            f"  Integration rate within multimodal studies: {pct(fusion, multimodal)}"
+        )
 
 
 def section_hardware(df: pd.DataFrame) -> None:
@@ -488,13 +664,17 @@ def section_hardware(df: pd.DataFrame) -> None:
     # Channel counts
     ch = pd.to_numeric(df["num_channels"], errors="coerce")
     ch_n = ch.notna().sum()
-    print(f"  Channel count reported: {ch_n} of {total} studies ({100*ch_n/total:.1f}%)")
-    print(f"  Median channels: {ch.median():.0f}  IQR: {ch.quantile(0.25):.0f}–{ch.quantile(0.75):.0f}  Mean: {ch.mean():.2f}  Range: {int(ch.min())}–{int(ch.max())}")
+    print(
+        f"  Channel count reported: {ch_n} of {total} studies ({100 * ch_n / total:.1f}%)"
+    )
+    print(
+        f"  Median channels: {ch.median():.0f}  IQR: {ch.quantile(0.25):.0f}–{ch.quantile(0.75):.0f}  Mean: {ch.mean():.2f}  Range: {int(ch.min())}–{int(ch.max())}"
+    )
     ch_valid = ch.dropna()
-    lt20  = (ch_valid < 20).sum()
+    lt20 = (ch_valid < 20).sum()
     r2131 = ((ch_valid >= 21) & (ch_valid <= 31)).sum()
     r3263 = ((ch_valid >= 32) & (ch_valid <= 63)).sum()
-    ge64  = (ch_valid >= 64).sum()
+    ge64 = (ch_valid >= 64).sum()
     print(f"  < 20 channels:  {pct(lt20, ch_n)}")
     print(f"  21–31 channels: {pct(r2131, ch_n)}")
     print(f"  32–63 channels: {pct(r3263, ch_n)}")
@@ -537,7 +717,7 @@ def section_geography(df: pd.DataFrame) -> None:
 
     # Western vs non-Western
     western_n = country.isin(WESTERN).sum()
-    non_west  = total - western_n
+    non_west = total - western_n
     print(f"\n  Western (N.Am, W.Eur, Aus): {pct(western_n, total)}")
     print(f"  Non-Western:                {pct(non_west, total)}")
 
@@ -550,8 +730,8 @@ def section_geography(df: pd.DataFrame) -> None:
         sep("  Non-replicability by top countries")
         top_countries = country.value_counts().head(8).index
         for c in top_countries:
-            sub  = df[country == c]
-            nr   = (~sub["replicable"]).sum()
+            sub = df[country == c]
+            nr = (~sub["replicable"]).sum()
             print(f"  {str(c).title():<20} non-replicable: {pct(nr, len(sub))}")
 
 
@@ -560,10 +740,10 @@ def section_open_science(df: pd.DataFrame) -> None:
     sep("11. OPEN SCIENCE (data availability & pre-registration)")
 
     da = df["Data Availability"]
-    open_repo  = da.eq(2.0).sum()
+    open_repo = da.eq(2.0).sum()
     on_request = da.eq(1.0).sum()
-    no_stmt    = da.eq(0.0).sum()
-    not_coded  = da.isna().sum()
+    no_stmt = da.eq(0.0).sum()
+    not_coded = da.isna().sum()
 
     print(f"  Open repository (code 2): {pct(open_repo, total)}")
     print(f"  Available on request (1): {pct(on_request, total)}")
@@ -589,11 +769,17 @@ def section_publication_venue(df: pd.DataFrame) -> None:
         sep("  Replicability by venue group")
         rows = []
         for v in venue_counts.index:
-            sub  = df[df["_venue"] == v]
-            rep  = sub["replicable"].sum()
-            nr   = len(sub) - rep
-            mean_score = sub["n_necessary"].mean() if "n_necessary" in sub.columns else float("nan")
-            print(f"  {v:<50} n={len(sub):>3}  replicable: {pct(rep, len(sub))}  mean score: {mean_score:.2f}")
+            sub = df[df["_venue"] == v]
+            rep = sub["replicable"].sum()
+            nr = len(sub) - rep
+            mean_score = (
+                sub["n_necessary"].mean()
+                if "n_necessary" in sub.columns
+                else float("nan")
+            )
+            print(
+                f"  {v:<50} n={len(sub):>3}  replicable: {pct(rep, len(sub))}  mean score: {mean_score:.2f}"
+            )
             rows.append([rep, nr])
 
         # Chi-square test
@@ -602,7 +788,9 @@ def section_publication_venue(df: pd.DataFrame) -> None:
         contingency = contingency[contingency.sum(axis=1) > 0]
         if contingency.shape[0] >= 2:
             chi2, p, dof, _ = chi2_contingency(contingency)
-            print(f"\n  Chi-square test (replicable vs not × venue): χ²({dof}) = {chi2:.2f}, p = {p:.3f}")
+            print(
+                f"\n  Chi-square test (replicable vs not × venue): χ²({dof}) = {chi2:.2f}, p = {p:.3f}"
+            )
 
     # Top journals overall
     sep("  Top journals (all)")
@@ -621,6 +809,7 @@ def section_publication_venue(df: pd.DataFrame) -> None:
 # =============================================================================
 # MAIN
 # =============================================================================
+
 
 def main(csv_path: Path) -> None:
     df_raw = pd.read_csv(csv_path)
@@ -657,7 +846,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--csv",
         type=Path,
-        default=Path(__file__).parent.parent / "NeuroUrbanism-DB" / "data" / "papers.csv",
+        default=Path(__file__).parent.parent
+        / "NeuroUrbanism-DB"
+        / "data"
+        / "papers.csv",
         help="Path to papers.csv  (default: ../NeuroUrbanism-DB/data/papers.csv)",
     )
     args = parser.parse_args()

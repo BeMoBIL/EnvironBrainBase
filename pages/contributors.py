@@ -35,7 +35,6 @@ CORE_AUTHORS = [
         "affiliation": "Technische Universität Berlin, Germany",
         "role": "Data curation & review",
     },
-
     {
         "name": "Isabelle Sander",
         "affiliation": "Technische Universität Berlin, Germany",
@@ -149,5 +148,6 @@ def main() -> None:
         "**Repository:** "
         "[github.com/Randomidous/NeuroUrbanism-DB](https://github.com/Randomidous/NeuroUrbanism-DB)"
     )
+
 
 main()

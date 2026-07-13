@@ -24,9 +24,11 @@ DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 # EEG system lookup (loaded once at import time)
 # ---------------------------------------------------------------------------
 
+
 @st.cache_resource(show_spinner=False)
 def _get_eeg_systems() -> dict:
     return load_eeg_systems()
+
 
 # ---------------------------------------------------------------------------
 # Replicability scoring
@@ -41,34 +43,46 @@ def _get_eeg_systems() -> dict:
 # This "either/or" check is handled in _score_row; the three columns are
 # NOT listed in _NECESSARY_COLS (which only contains simple single-field checks).
 _NECESSARY_COLS: list[str] = [
-    "sampling_rate_hz",    # SR_in_Hz
-    "filters_amp",         # online / hardware filter settings
-    "online_filters",      # were online filters applied?
+    "sampling_rate_hz",  # SR_in_Hz
+    "filters_amp",  # online / hardware filter settings
+    "online_filters",  # were online filters applied?
     "num_channels",
     "electrode_type",
     "electrode_locations",
-    "reference_electrode", # reference
+    "reference_electrode",  # reference
     "artifact_rejection",
 ]
 
-_N_MAX: int = len(_NECESSARY_COLS) + 1  # +1 for the offline-filter either/or criterion = 9
+_N_MAX: int = (
+    len(_NECESSARY_COLS) + 1
+)  # +1 for the offline-filter either/or criterion = 9
 
 # Good-to-have fields (G, max = 4).
 _GOOD_COLS: list[str] = [
     "channel_interpolation",
-    "impedance",           # Impedance
-    "eeg_company",         # EEG_company
-    "eeg_system",          # EEG_system
+    "impedance",  # Impedance
+    "eeg_company",  # EEG_company
+    "eeg_system",  # EEG_system
 ]
 _G_MAX: int = len(_GOOD_COLS)  # 4
 
 # Values treated as absent (case-insensitive, after strip)
 _ABSENT: frozenset[str] = frozenset(
     {
-        "", "na", "n/a", "nan", "nr", "unknown", "none",
-        "0", "0.0",
-        "na / na", "na/na",
-        "not reported", "not available", "not applicable",
+        "",
+        "na",
+        "n/a",
+        "nan",
+        "nr",
+        "unknown",
+        "none",
+        "0",
+        "0.0",
+        "na / na",
+        "na/na",
+        "not reported",
+        "not available",
+        "not applicable",
     }
 )
 
@@ -84,9 +98,8 @@ def _offline_filter_present(row: "pd.Series") -> bool:
     """Offline filter criterion: offline_filters present OR both HP+LP cutoffs present."""
     if _is_present(row.get("offline_filters", "")):
         return True
-    return (
-        _is_present(row.get("offline_highpass_hz", ""))
-        and _is_present(row.get("offline_lowpass_hz", ""))
+    return _is_present(row.get("offline_highpass_hz", "")) and _is_present(
+        row.get("offline_lowpass_hz", "")
     )
 
 
@@ -117,11 +130,11 @@ def compute_replicability(df: pd.DataFrame) -> pd.DataFrame:
     df["replicability_score"] = scores
     df["replicability_label"] = labels
     # Move both columns to position 2 (right after authors_short and year)
-    cols = [c for c in df.columns if c not in ("replicability_score", "replicability_label")]
+    cols = [
+        c for c in df.columns if c not in ("replicability_score", "replicability_label")
+    ]
     cols = cols[:2] + ["replicability_score", "replicability_label"] + cols[2:]
     return df[cols]
-
-
 
 
 @st.cache_data(show_spinner=False)
@@ -130,12 +143,16 @@ def load_papers() -> pd.DataFrame:
 
     # Normalise eeg_system_mobile_stationary to "stat" / "mobile" / ""
     _MOB_NORM = {
-        "stat": "stat", "stat - hmd": "stat",
-        "mobile": "mobile", "mob": "mobile", "mobile & stat": "mobile",
+        "stat": "stat",
+        "stat - hmd": "stat",
+        "mobile": "mobile",
+        "mob": "mobile",
+        "mobile & stat": "mobile",
     }
     df["eeg_system_mobile_stationary"] = (
         df["eeg_system_mobile_stationary"]
-        .str.lower().str.strip()
+        .str.lower()
+        .str.strip()
         .map(_MOB_NORM)
         .fillna("")
     )
@@ -367,11 +384,19 @@ def main() -> None:
         import html as _html
         import streamlit.components.v1 as _components
 
-        _SCORE_COLOR = {0:"#c0392b",1:"#e67e22",2:"#f1c40f",3:"#27ae60",4:"#2980b9"}
+        _SCORE_COLOR = {
+            0: "#c0392b",
+            1: "#e67e22",
+            2: "#f1c40f",
+            3: "#27ae60",
+            4: "#2980b9",
+        }
         _SCORE_LABEL = {
-            0:"Wired / stationary", 1:"Waist-mounted + cables",
-            2:"Waist-mounted, wireless", 3:"Head-mounted + rucksack",
-            4:"Fully head-mounted",
+            0: "Wired / stationary",
+            1: "Waist-mounted + cables",
+            2: "Waist-mounted, wireless",
+            3: "Head-mounted + rucksack",
+            4: "Fully head-mounted",
         }
         _sys_lk = _get_eeg_systems()
 
@@ -379,13 +404,13 @@ def main() -> None:
             try:
                 s = int(float(score_str))
                 c = _SCORE_COLOR.get(s, "#888")
-                dots = "●"*(s+1) + "○"*(4-s)
+                dots = "●" * (s + 1) + "○" * (4 - s)
                 return f"<span style='background:{c};color:#fff;padding:1px 7px;border-radius:10px;font-size:0.78rem;font-weight:600'>{s} {dots}</span>"
             except (ValueError, TypeError):
                 return f"<span style='color:#aaa'>{_html.escape(str(score_str))}</span>"
 
         def _eeg_cell(sys_name, score_str):
-            if not sys_name or sys_name.lower() in ("na","n/a",""):
+            if not sys_name or sys_name.lower() in ("na", "n/a", ""):
                 return "<span style='color:#bbb'>—</span>"
             info = lookup_eeg_system(sys_name, _sys_lk)
             score_int = None
@@ -393,14 +418,28 @@ def main() -> None:
                 score_int = int(info.get("mobility_score", "x"))
             except (ValueError, TypeError):
                 pass
-            dot_color = _SCORE_COLOR.get(score_int, "#aaa") if score_int is not None else "#aaa"
-            mfr  = _html.escape(str(info.get("manufacturer","—")))
-            ch   = _html.escape(str(info.get("channels","—")))
-            link = info.get("link","")
-            notes = _html.escape(str(info.get("notes","")))
-            slabel = _SCORE_LABEL.get(score_int,"unknown") if score_int is not None else "unknown"
-            link_part = f"<a href='{link}' target='_blank' style='color:#93c5fd'>↗ product page</a>" if link else ""
-            notes_part = f"<em style='color:#aaa;font-size:0.78rem'>{notes}</em><br>" if notes else ""
+            dot_color = (
+                _SCORE_COLOR.get(score_int, "#aaa") if score_int is not None else "#aaa"
+            )
+            mfr = _html.escape(str(info.get("manufacturer", "—")))
+            ch = _html.escape(str(info.get("channels", "—")))
+            link = info.get("link", "")
+            notes = _html.escape(str(info.get("notes", "")))
+            slabel = (
+                _SCORE_LABEL.get(score_int, "unknown")
+                if score_int is not None
+                else "unknown"
+            )
+            link_part = (
+                f"<a href='{link}' target='_blank' style='color:#93c5fd'>↗ product page</a>"
+                if link
+                else ""
+            )
+            notes_part = (
+                f"<em style='color:#aaa;font-size:0.78rem'>{notes}</em><br>"
+                if notes
+                else ""
+            )
             tip = (
                 f"<strong>{_html.escape(sys_name)}</strong><br>"
                 f"Manufacturer: {mfr}<br>"
@@ -427,25 +466,40 @@ def main() -> None:
             "<th>Cat</th><th>N</th><th>Ch</th>"
             "<th>EEG System</th><th>Setting</th><th>DOI</th></tr>"
         )
-        _LAB = {"1":"Lab","2":"Real-world","3":"Mixed","stat":"Stationary","mob":"Mobile"}
-        _CAT = {"1":"Arch","2":"Urban","3":"Nature"}
+        _LAB = {
+            "1": "Lab",
+            "2": "Real-world",
+            "3": "Mixed",
+            "stat": "Stationary",
+            "mob": "Mobile",
+        }
+        _CAT = {"1": "Arch", "2": "Urban", "3": "Nature"}
         rows_html = []
         for _, row in f.iterrows():
-            cat_raw = str(row.get("sample_category",""))
-            cat_disp = "/".join(_CAT.get(c.strip(),c.strip()) for c in cat_raw.split(",") if c.strip())
-            doi = str(row.get("doi_link","")).strip()
-            doi_html = f"<a href='{_html.escape(doi)}' target='_blank' style='color:#2980b9'>↗</a>" if doi and doi.lower() not in ("","na") else ""
-            setting = _LAB.get(str(row.get("lab_realworld_binary","")).strip(), str(row.get("lab_realworld_binary","")))
+            cat_raw = str(row.get("sample_category", ""))
+            cat_disp = "/".join(
+                _CAT.get(c.strip(), c.strip()) for c in cat_raw.split(",") if c.strip()
+            )
+            doi = str(row.get("doi_link", "")).strip()
+            doi_html = (
+                f"<a href='{_html.escape(doi)}' target='_blank' style='color:#2980b9'>↗</a>"
+                if doi and doi.lower() not in ("", "na")
+                else ""
+            )
+            setting = _LAB.get(
+                str(row.get("lab_realworld_binary", "")).strip(),
+                str(row.get("lab_realworld_binary", "")),
+            )
             rows_html.append(
                 f"<tr>"
-                f"<td style='white-space:nowrap'>{_truncate(row.get('authors_short',''),30)}</td>"
-                f"<td>{_html.escape(str(row.get('year','')))}</td>"
-                f"<td class='title-cell'>{_truncate(row.get('title',''),70)}</td>"
-                f"<td>{_truncate(row.get('journal',''),25)}</td>"
+                f"<td style='white-space:nowrap'>{_truncate(row.get('authors_short', ''), 30)}</td>"
+                f"<td>{_html.escape(str(row.get('year', '')))}</td>"
+                f"<td class='title-cell'>{_truncate(row.get('title', ''), 70)}</td>"
+                f"<td>{_truncate(row.get('journal', ''), 25)}</td>"
                 f"<td style='text-align:center'>{_html.escape(cat_disp)}</td>"
-                f"<td style='text-align:center'>{_html.escape(str(row.get('num_participants','')))}</td>"
-                f"<td style='text-align:center'>{_html.escape(str(row.get('num_channels','')))}</td>"
-                f"<td>{_eeg_cell(str(row.get('eeg_system','')).strip(), str(row.get('system_mobility_score','')))}</td>"
+                f"<td style='text-align:center'>{_html.escape(str(row.get('num_participants', '')))}</td>"
+                f"<td style='text-align:center'>{_html.escape(str(row.get('num_channels', '')))}</td>"
+                f"<td>{_eeg_cell(str(row.get('eeg_system', '')).strip(), str(row.get('system_mobility_score', '')))}</td>"
                 f"<td style='white-space:nowrap'>{_html.escape(str(setting))}</td>"
                 f"<td style='text-align:center'>{doi_html}</td>"
                 f"</tr>"
@@ -537,7 +591,6 @@ table tr:hover td { background: #f0f4ff; }
 
         _components.html(css + table_html + js, height=560, scrolling=False)
 
-
         st.divider()
         st.subheader("Paper detail")
         if n_shown == 0:
@@ -564,8 +617,11 @@ table tr:hover td { background: #f0f4ff; }
                     info = lookup_eeg_system(sys_name, systems_lookup)
                     if info:
                         _SCORE_COLOR = {
-                            0: "#c0392b", 1: "#e67e22", 2: "#f1c40f",
-                            3: "#27ae60", 4: "#2980b9",
+                            0: "#c0392b",
+                            1: "#e67e22",
+                            2: "#f1c40f",
+                            3: "#27ae60",
+                            4: "#2980b9",
                         }
                         _SCORE_LABEL = {
                             0: "Wired / stationary",
@@ -578,7 +634,9 @@ table tr:hover td { background: #f0f4ff; }
                         try:
                             score_int = int(score)
                             color = _SCORE_COLOR.get(score_int, "#888")
-                            score_text = f"{score_int} – {_SCORE_LABEL.get(score_int, '')}"
+                            score_text = (
+                                f"{score_int} – {_SCORE_LABEL.get(score_int, '')}"
+                            )
                         except (TypeError, ValueError):
                             color = "#888"
                             score_text = "Unknown"
@@ -586,16 +644,17 @@ table tr:hover td { background: #f0f4ff; }
                         link = info.get("link", "")
                         link_html = (
                             f"<a href='{link}' target='_blank'>↗ Product page</a>"
-                            if link else ""
+                            if link
+                            else ""
                         )
                         notes = info.get("notes", "")
                         st.markdown(
                             f"""
 <div style='border-left:4px solid {color};padding:10px 16px;background:#f8f8ff;
             border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.88rem;'>
-  <strong>🔬 EEG System: {info.get('name', sys_name)}</strong><br>
-  Manufacturer: {info.get('manufacturer', '—')} &nbsp;|&nbsp;
-  Channels: {info.get('channels', '—')} &nbsp;|&nbsp;
+  <strong>🔬 EEG System: {info.get("name", sys_name)}</strong><br>
+  Manufacturer: {info.get("manufacturer", "—")} &nbsp;|&nbsp;
+  Channels: {info.get("channels", "—")} &nbsp;|&nbsp;
   <span style='background:{color};color:#fff;padding:1px 8px;border-radius:10px;
                font-weight:600'>&nbsp;Mobility {score_text}&nbsp;</span>
   {"&nbsp;|&nbsp;" + link_html if link_html else ""}
@@ -844,7 +903,9 @@ table tr:hover td { background: #f0f4ff; }
             "(0 = still, 4 = free locomotion) and EEG system mobility "
             "(0 = wired desktop, 4 = head-mounted with smartphone). "
         )
-        if {"participant_mobility_score_num", "system_mobility_score_num"}.issubset(f.columns):
+        if {"participant_mobility_score_num", "system_mobility_score_num"}.issubset(
+            f.columns
+        ):
             heat = f.dropna(
                 subset=["participant_mobility_score_num", "system_mobility_score_num"]
             ).copy()
@@ -863,8 +924,16 @@ table tr:hover td { background: #f0f4ff; }
                     .mark_rect()
                     .encode(
                         x=alt.X("system:O", title="System mobility (0-4)"),
-                        y=alt.Y("participant:O", title="Participant mobility (0-4)", sort="descending"),
-                        color=alt.Color("count:Q", title="# of papers", scale=alt.Scale(scheme="blues")),
+                        y=alt.Y(
+                            "participant:O",
+                            title="Participant mobility (0-4)",
+                            sort="descending",
+                        ),
+                        color=alt.Color(
+                            "count:Q",
+                            title="# of papers",
+                            scale=alt.Scale(scheme="blues"),
+                        ),
                         tooltip=["participant", "system", "count"],
                     )
                     .properties(height=320)
@@ -892,7 +961,10 @@ table tr:hover td { background: #f0f4ff; }
         st.caption(
             "Editor-assigned score: 1 = fully replicable, 2 = partially, 3 = not replicable from the paper alone. Lower is better."
         )
-        if "replicability_raw_num" in f.columns and f["replicability_raw_num"].notna().any():
+        if (
+            "replicability_raw_num" in f.columns
+            and f["replicability_raw_num"].notna().any()
+        ):
             rep = f["replicability_raw_num"].dropna().astype(int).reset_index(drop=True)
             rep_df = rep.value_counts().sort_index().reset_index()
             rep_df.columns = ["replicability_score", "count"]
@@ -900,7 +972,9 @@ table tr:hover td { background: #f0f4ff; }
                 alt.Chart(rep_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X("replicability_score:O", title="Replicability (1=best, 3=worst)"),
+                    x=alt.X(
+                        "replicability_score:O", title="Replicability (1=best, 3=worst)"
+                    ),
                     y=alt.Y("count:Q", title="# of papers"),
                     tooltip=["replicability_score", "count"],
                 )
@@ -923,9 +997,16 @@ table tr:hover td { background: #f0f4ff; }
                 alt.Chart(ndf)
                 .mark_bar()
                 .encode(
-                    x=alt.X("n_participants:Q", bin=alt.Bin(step=10), title="N participants (capped at 200)"),
+                    x=alt.X(
+                        "n_participants:Q",
+                        bin=alt.Bin(step=10),
+                        title="N participants (capped at 200)",
+                    ),
                     y=alt.Y("count():Q", title="# of papers"),
-                    tooltip=[alt.Tooltip("n_participants:Q", bin=alt.Bin(step=10)), "count():Q"],
+                    tooltip=[
+                        alt.Tooltip("n_participants:Q", bin=alt.Bin(step=10)),
+                        "count():Q",
+                    ],
                 )
                 .properties(height=260)
             )

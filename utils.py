@@ -42,10 +42,7 @@ def load_eeg_systems() -> "dict[str, dict[str, Any]]":
     """
     with open(_EEG_SYSTEMS_PATH, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-    return {
-        entry["name"].strip().lower(): entry
-        for entry in data.get("systems", [])
-    }
+    return {entry["name"].strip().lower(): entry for entry in data.get("systems", [])}
 
 
 def lookup_eeg_system(system_name: str, systems=None) -> "dict[str, Any]":

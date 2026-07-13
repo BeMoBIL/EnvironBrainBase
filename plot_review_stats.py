@@ -19,7 +19,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 
-import styles as S
+import plot_styles as S
 
 # ── bootstrap colors that need viridis ───────────────────────────────────────
 S.setup_research_topic_colors()

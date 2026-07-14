@@ -55,11 +55,11 @@ from plots import (
 
 # --- Replicability criteria (raw CSV column names) ---
 NECESSARY_COLS: dict[str, str] = {
-    "SR_in_Hz":            "Sample rate",
+    "SR_in_Hz": "Sample rate",
     # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
-    "online_filters":      "Online filters applied",
-    "num_channels":        "Number of channels",
-    "electrode_type":      "Electrode type",
+    "online_filters": "Online filters applied",
+    "num_channels": "Number of channels",
+    "electrode_type": "Electrode type",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
@@ -223,7 +223,6 @@ def parse_pct(val: object) -> float | None:
         return None
 
 
-
 def parse_multicoded(val: object) -> list[str]:
     """Split '1, 2' or '1,2' style cells into a list of stripped tokens."""
     if pd.isna(val):
@@ -272,9 +271,15 @@ def section_study_design(df: pd.DataFrame) -> None:
     lab_incl_hmd = lab + hmd  # VR/HMD counted as lab
     print(f"  Lab (incl. HMD/VR): {pct(lab_incl_hmd, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, total)}")
-    combined  = df["lab_realworld_binary"].eq(3).sum()
-    hmd       = df["EEG_system_mobile_stationary"].str.lower().str.strip().eq("stat - hmd").sum()
-    #lab_incl_hmd = lab + hmd  # VR/HMD counted as lab -> already included in lab count
+    combined = df["lab_realworld_binary"].eq(3).sum()
+    hmd = (
+        df["EEG_system_mobile_stationary"]
+        .str.lower()
+        .str.strip()
+        .eq("stat - hmd")
+        .sum()
+    )
+    # lab_incl_hmd = lab + hmd  # VR/HMD counted as lab -> already included in lab count
     print(f"  Lab (incl. HMD/VR): {pct(lab, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, lab)}")
     print(f"  Real-world (mobile): {pct(realworld, total)}")
@@ -387,26 +392,40 @@ def section_research_focus(df: pd.DataFrame) -> None:
     # Build one row per (paper, mapped topic) using Research Topic instead of dom_col.
     rows = []
     for _, row in df.iterrows():
-        mapped_topics = [t for t in parse_multicoded(row.get("Research Topic")) if t in topic_labels]
+        mapped_topics = [
+            t for t in parse_multicoded(row.get("Research Topic")) if t in topic_labels
+        ]
         if not mapped_topics:
             continue
 
         mobility = str(row.get("EEG_system_mobile_stationary", "")).strip().lower()
         for topic in mapped_topics:
-            rows.append({
-                "topic": topic,
-                "mobility": mobility,
-                "replicable": bool(row.get("replicable", False)),
-            })
+            rows.append(
+                {
+                    "topic": topic,
+                    "mobility": mobility,
+                    "replicable": bool(row.get("replicable", False)),
+                }
+            )
 
     topic_frame = pd.DataFrame(rows)
 
     if not topic_frame.empty:
         sep("  Topic-based domain summary (from Research Topic)")
-        topic_counts = topic_frame["topic"].value_counts().reindex(topic_labels).dropna().astype(int)
-        multi_topic = df["Research Topic"].apply(
-            lambda x: len([t for t in parse_multicoded(x) if t in topic_labels]) > 1
-        ).sum()
+        topic_counts = (
+            topic_frame["topic"]
+            .value_counts()
+            .reindex(topic_labels)
+            .dropna()
+            .astype(int)
+        )
+        multi_topic = (
+            df["Research Topic"]
+            .apply(
+                lambda x: len([t for t in parse_multicoded(x) if t in topic_labels]) > 1
+            )
+            .sum()
+        )
         print(f"  Multi-topic papers: {pct(int(multi_topic), total)}")
         for topic, cnt in topic_counts.items():
             print(f"  {topic:<42} {pct(int(cnt), total)}")
@@ -445,8 +464,12 @@ def section_research_focus(df: pd.DataFrame) -> None:
 
     # Grouped motivation
     mot_lower = df["Motivation"].str.lower().str.strip().fillna("")
-    design_policy  = mot_lower.isin(["design optimisation", "planning & policy evidence"]).sum()
-    print(f"    Grouped Percentage Design optimisation + planning/policy: {pct(design_policy, total)}")
+    design_policy = mot_lower.isin(
+        ["design optimisation", "planning & policy evidence"]
+    ).sum()
+    print(
+        f"    Grouped Percentage Design optimisation + planning/policy: {pct(design_policy, total)}"
+    )
 
 
 def section_eeg_features(df: pd.DataFrame) -> None:
@@ -601,10 +624,19 @@ def section_hardware(df: pd.DataFrame) -> None:
     # Consumer vs medical grade from explicit coding column
     grade_col = "System grade (medical vs consumer)"
     if grade_col in df.columns:
-        grades = df[grade_col].fillna("NA").astype(str).str.strip().str.lower().value_counts()
+        grades = (
+            df[grade_col]
+            .fillna("NA")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .value_counts()
+        )
         print(f"\n  Consumer-grade:     {pct(grades.get('consumer', 0), total)}")
         print(f"  Medical-grade:      {pct(grades.get('medical', 0), total)}")
-        print(f"  NA / not reported:  {pct(grades.get('na', 0) + grades.get('nan', 0), total)}")
+        print(
+            f"  NA / not reported:  {pct(grades.get('na', 0) + grades.get('nan', 0), total)}"
+        )
     else:
         print(f"\n  System-grade column missing: '{grade_col}'")
 
@@ -663,6 +695,7 @@ def section_open_science(df: pd.DataFrame) -> None:
     print(f"  No statement (code 0):    {pct(no_stmt, total)}")
     print(f"  Not coded / NaN:          {pct(not_coded, total)}")
 
+
 def section_publication_venue(df: pd.DataFrame) -> None:
     total = len(df)
     sep("11. PUBLICATION VENUE")
@@ -720,6 +753,7 @@ def section_publication_venue(df: pd.DataFrame) -> None:
 # =============================================================================
 # MAIN
 # =============================================================================
+
 
 def main(csv_path: Path, plots: bool = True) -> None:
     df_raw = pd.read_csv(csv_path)

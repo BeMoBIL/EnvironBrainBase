@@ -157,10 +157,10 @@ def load_papers() -> pd.DataFrame:
         .fillna("")
     )
 
-    # Preserve original editor replicability (1-3 scale) before compute overwrites it
-    df["replicability_raw"] = df["replicability_score"]
-
     df = compute_replicability(df)
+
+    # Preserve original editor replicability (1-3 scale)
+    df["replicability_raw"] = df["replicability_score"]
 
     # Derive system_mobility_score from the canonical EEG system lookup.
     # Falls back to the CSV value only when the system name is not in the YAML.

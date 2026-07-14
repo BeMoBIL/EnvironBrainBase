@@ -167,7 +167,7 @@ optional and a maintainer can fill them during review.
 If you'd rather edit the CSV directly:
 
 ```bash
-git clone https://github.com/Randomidous/EnviroBrainBase.git
+git clone https://github.com/BeMoBIL/EnviroBrainBase.git
 cd EnviroBrainBase
 git checkout -b add/firstauthor-year
 # edit data/papers.csv: append a row, keep column order

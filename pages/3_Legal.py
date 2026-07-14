@@ -69,7 +69,7 @@ st.markdown(
     "you provide appear in the PR description and will be visible to anyone "
     "who can read the repository. If you need to retract a submission before "
     "it is merged, contact a maintainer via the "
-    "[GitHub issue tracker](https://github.com/Randomidous/EnviroBrainBase/issues)."
+    "[GitHub issue tracker](https://github.com/BeMoBIL/EnviroBrainBase/issues)."
 )
 
 st.divider()
@@ -77,7 +77,7 @@ st.divider()
 st.markdown("## Contact & corrections")
 st.markdown(
     "- **Bug or correction:** open an Issue at "
-    "[github.com/Randomidous/EnviroBrainBase/issues](https://github.com/Randomidous/EnviroBrainBase/issues).\n"
+    "[github.com/BeMoBIL/EnviroBrainBase/issues](https://github.com/BeMoBIL/EnviroBrainBase/issues).\n"
     "- **Submit a paper:** use the **Submit a paper** page in the sidebar.\n"
     "- **Maintainer contact:** see the GitHub repository description.\n"
 )

@@ -24,7 +24,7 @@
   "upload_type": "dataset",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/Randomidous/EnviroBrainBase",
+      "identifier": "https://github.com/BeMoBIL/EnviroBrainBase",
       "relation": "isSupplementTo",
       "scheme": "url"
     }

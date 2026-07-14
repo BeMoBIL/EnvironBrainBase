@@ -99,7 +99,7 @@ def main() -> None:
 
     st.markdown(
         "If you would rather edit the CSV directly, see "
-        "[CONTRIBUTING.md](https://github.com/Randomidous/EnviroBrainBase/blob/main/CONTRIBUTING.md) "
+        "[CONTRIBUTING.md](https://github.com/BeMoBIL/EnviroBrainBase/blob/main/CONTRIBUTING.md) "
         "for the manual PR workflow and full schema documentation."
     )
 
@@ -108,7 +108,7 @@ def main() -> None:
         "If you use EnviroBrainBase in your work, please cite the **specific "
         "release version** you used (e.g. `v1.0`), not `main`. Each tagged "
         "release has its own Zenodo DOI; the latest version is listed in the "
-        "[repository README](https://github.com/Randomidous/EnviroBrainBase#readme). "
+        "[repository README](https://github.com/BeMoBIL/EnviroBrainBase#readme). "
         "Citing a fixed version makes your results reproducible while letting "
         "the database itself keep evolving."
     )

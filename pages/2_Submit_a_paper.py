@@ -15,7 +15,7 @@ Secrets required (in Streamlit Cloud → Settings → Secrets, or
 
     [github]
     token = "ghp_xxx"          # fine-grained PAT with Contents:RW + Pull-Requests:RW
-    repo  = "Randomidous/EnviroBrainBase"
+    repo  = "BeMoBIL/EnviroBrainBase"
     base_branch = "main"
 
 If 'token' is missing the page still renders so reviewers can see the form,
@@ -48,7 +48,7 @@ st.caption(
 # ---------- Secrets / config ----------
 gh_cfg = st.secrets.get("github", {}) if hasattr(st, "secrets") else {}
 TOKEN = gh_cfg.get("token", "")
-REPO = gh_cfg.get("repo", "Randomidous/EnviroBrainBase")
+REPO = gh_cfg.get("repo", "BeMoBIL/EnviroBrainBase")
 BASE_BRANCH = gh_cfg.get("base_branch", "main")
 DATA_FILE_IN_REPO = "data/papers.csv"
 

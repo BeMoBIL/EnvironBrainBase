@@ -15,7 +15,7 @@ authors:
   - family-names: Gramann
     given-names: Klaus
     affiliation: "Technische Universität Berlin, Germany"
-repository-code: "https://github.com/Randomidous/EnviroBrainBase"
+repository-code: "https://github.com/BeMoBIL/EnviroBrainBase"
 license: CC-BY-4.0
 keywords:
   - EEG

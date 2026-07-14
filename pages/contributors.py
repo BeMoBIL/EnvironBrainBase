@@ -146,7 +146,7 @@ def main() -> None:
 
     st.markdown(
         "**Repository:** "
-        "[github.com/Randomidous/EnviroBrainBase](https://github.com/Randomidous/EnviroBrainBase)"
+        "[github.com/BeMoBIL/EnviroBrainBase](https://github.com/BeMoBIL/EnviroBrainBase)"
     )
 
 

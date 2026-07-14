@@ -1,5 +1,5 @@
 """
-NeuroUrbanism-DB: Legal / licensing / privacy page.
+EnviroBrainBase: Legal / licensing / privacy page.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ st.title("⚖️ Legal")
 
 st.markdown("## Licensing")
 st.markdown(
-    "NeuroUrbanism-DB has a split licence so that the *code* is freely reusable "
+    "EnviroBrainBase has a split licence so that the *code* is freely reusable "
     "while the curated *data* is reusable with attribution:"
 )
 st.markdown(
@@ -36,7 +36,7 @@ st.divider()
 
 st.markdown("## Disclaimer")
 st.markdown(
-    "NeuroUrbanism-DB is a research aid, not an authoritative source. The "
+    "EnviroBrainBase is a research aid, not an authoritative source. The "
     "categorical codings, scoring rubrics, and replicability assessments "
     "reflect the editors' interpretations of each paper and may contain errors "
     "or judgement calls you would make differently. Always go back to the "
@@ -69,7 +69,7 @@ st.markdown(
     "you provide appear in the PR description and will be visible to anyone "
     "who can read the repository. If you need to retract a submission before "
     "it is merged, contact a maintainer via the "
-    "[GitHub issue tracker](https://github.com/Randomidous/NeuroUrbanism-DB/issues)."
+    "[GitHub issue tracker](https://github.com/BeMoBIL/EnviroBrainBase/issues)."
 )
 
 st.divider()
@@ -77,7 +77,7 @@ st.divider()
 st.markdown("## Contact & corrections")
 st.markdown(
     "- **Bug or correction:** open an Issue at "
-    "[github.com/Randomidous/NeuroUrbanism-DB/issues](https://github.com/Randomidous/NeuroUrbanism-DB/issues).\n"
+    "[github.com/BeMoBIL/EnviroBrainBase/issues](https://github.com/BeMoBIL/EnviroBrainBase/issues).\n"
     "- **Submit a paper:** use the **Submit a paper** page in the sidebar.\n"
     "- **Maintainer contact:** see the GitHub repository description.\n"
 )

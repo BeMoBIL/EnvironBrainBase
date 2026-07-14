@@ -1,5 +1,5 @@
 """
-NeuroUrbanism-DB: Database (browse + filter + plots) page.
+EnviroBrainBase: Database (browse + filter + plots) page.
 
 Two tabs, both driven by the same sidebar filters:
   1. Data overview: descriptives + browsable table + per-paper detail.

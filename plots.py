@@ -24,52 +24,6 @@ NECESSARY_COLS: dict[str, str] = {
     "artifact_rejection":  "Artifact rejection",
 }
 
-# Journal venue classification (keyword-based).
-VENUE_KEYWORDS = {
-    "Architecture / Built-environment / Design": [
-        "building", "architect", "construction", "facility", "facilities",
-        "habitat", "indoor", "interior", "structural", "built environment",
-        "design stud", "design research",
-    ],
-    "Nature / Environment / Landscape / Health": [
-        "environment", "nature", "landscape", "forest", "urban forest",
-        "green", "ecological", "ecology", "land", "public health",
-        "health promot", "epidemi", "preventive", "environ res",
-        "sustainability", "sustainable", "cities", "urban plan",
-        "frontiers in public", "int j environ",
-    ],
-    "Engineering / Acoustics / Technology": [
-        "engineer", "acoustic", "applied sci", "sensor", "ieee",
-        "signal process", "measurement", "instrum", "comput",
-        "simulation", "technolog",
-    ],
-    "Neuroscience / Psychology": [
-        "neurosci", "psychol", "brain", "cognit", "neural", "behav",
-        "neuroimag", "psychophysiol", "neuroergon", "affect",
-        "front hum neurosci", "front psychol", "j environ psychol",
-        "sci rep", "scientific reports", "plos one", "elife",
-        "j cog neurosci", "psychophysiology", "neuroimage",
-        "j neurosci", "pnas", "euro j neurosci", "cerebral cortex",
-        "eneuro", "brain sci",
-    ],
-}
-
-
-def classify_venue(journal: str) -> str:
-    j = str(journal).lower().strip()
-    for label, kws in [
-        ("Neuroscience / Psychology", VENUE_KEYWORDS["Neuroscience / Psychology"]),
-        ("Architecture / Built-environment / Design",
-             VENUE_KEYWORDS["Architecture / Built-environment / Design"]),
-        ("Nature / Environment / Landscape / Health",
-             VENUE_KEYWORDS["Nature / Environment / Landscape / Health"]),
-        ("Engineering / Acoustics / Technology",
-             VENUE_KEYWORDS["Engineering / Acoustics / Technology"]),
-    ]:
-        if any(kw in j for kw in kws):
-            return label
-    return "Other / Unclassified"
-
 mpl.rcParams["svg.fonttype"] = "path"
 mpl.rcParams["pdf.fonttype"] = 42
 mpl.rcParams["ps.fonttype"] = 42
@@ -86,7 +40,7 @@ FONT_STACK = [
 def export_figure(fig: plt.Figure, stem: str) -> None:
     """Export a figure in SVG, PDF, and EPS formats."""
     fig.savefig(EXPORT_DIR / f"{stem}.svg", format="svg", bbox_inches="tight", facecolor="white")
-    fig.savefig(EXPORT_DIR / f"{stem}.pdf", format="pdf", bbox_inches="tight", facecolor="white")
+    # fig.savefig(EXPORT_DIR / f"{stem}.pdf", format="pdf", bbox_inches="tight", facecolor="white")
     # fig.savefig(EXPORT_DIR / f"{stem}.eps", format="eps", bbox_inches="tight", facecolor="white")
     fig.savefig(EXPORT_DIR / f"{stem}.png", format="png", bbox_inches="tight", facecolor="white")
 
@@ -200,7 +154,7 @@ def plot_research_topic(df: pd.DataFrame) -> None:
     ]
     ax2.legend(handles=legend_handles, frameon=False, loc="lower right", fontsize=8, labelcolor="#4A4A4A")
     fig2.tight_layout()
-    export_figure(fig2, "research_topic_distribution")
+    export_figure(fig2, "fig3b_research_topic_distribution")
     plt.close(fig2)
 
 
@@ -287,7 +241,7 @@ def plot_study_design(df: pd.DataFrame) -> None:
         color="#555555",
     )
     plt.tight_layout()
-    export_figure(fig, "study_design_distribution")
+    export_figure(fig, "fig3a_study_design_distribution")
     plt.close(fig)
 
 
@@ -388,7 +342,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
 
     ax.legend(frameon=False, loc="lower right", ncol=2)
     fig.tight_layout()
-    export_figure(fig, "paradigm_by_research_object")
+    export_figure(fig, "fig3c_paradigm_by_research_object")
     plt.close(fig)
 
 
@@ -566,7 +520,7 @@ def plot_non_replicability_by_topic(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "non_replicability_by_topic")
+    export_figure(fig, "fig7c_non_replicability_by_topic")
     plt.close(fig)
 
 
@@ -619,7 +573,7 @@ def plot_analytic_domain(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "analytic_domain_distribution")
+    export_figure(fig, "fig4a_analytic_domain_distribution")
     plt.close(fig)
 
 
@@ -672,7 +626,7 @@ def plot_frequency_bands(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "frequency_band_prevalence")
+    export_figure(fig, "fig4b_frequency_band_prevalence")
     plt.close(fig)
 
 
@@ -732,7 +686,7 @@ def plot_multimodal_prevalence(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "multimodal_modality_prevalence")
+    export_figure(fig, "fig5a_multimodal_modality_prevalence")
     plt.close(fig)
 
 
@@ -784,7 +738,7 @@ def plot_multimodal_integration_pie(df: pd.DataFrame) -> None:
         color="#555555",
     )
     plt.tight_layout()
-    export_figure(fig, "multimodal_integration_pie")
+    export_figure(fig, "fig5b_multimodal_integration_pie")
     plt.close(fig)
 
 
@@ -843,7 +797,7 @@ def plot_consumer_grade_distribution(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "consumer_grade_distribution")
+    export_figure(fig, "fig6b_consumer_grade_distribution")
     plt.close(fig)
 
 
@@ -894,7 +848,7 @@ def plot_top_eeg_systems(df: pd.DataFrame, top_n: int = 12) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "top_eeg_systems")
+    export_figure(fig, "fig6a_top_eeg_systems")
     plt.close(fig)
 
 
@@ -969,7 +923,7 @@ def plot_data_availability(df: pd.DataFrame) -> None:
     ]
     ax.legend(handles=legend_handles, frameon=True, loc="upper left", ncol=2)
     fig.tight_layout()
-    export_figure(fig, "data_availability_by_year")
+    export_figure(fig, "fig8_data_availability_by_year")
     plt.close(fig)
 
 
@@ -1005,7 +959,7 @@ def plot_mean_age(df: pd.DataFrame) -> None:
     ax.set_ylim(0, 120)
 
     fig.tight_layout()
-    export_figure(fig, "mean_age_participants_distribution")
+    export_figure(fig, "fig1b_mean_age_participants_distribution")
     plt.close(fig)
 
 
@@ -1090,7 +1044,7 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
     ]
     ax.legend(handles=legend_handles, frameon=True, loc="upper right", fontsize=7)
     fig.tight_layout()
-    export_figure(fig, "age_ranges_distribution")
+    export_figure(fig, "fig1c_age_ranges_distribution")
     plt.close(fig)
 
 
@@ -1251,7 +1205,7 @@ def plot_publication_year(df: pd.DataFrame) -> None:
 
     add_break_marks(ax_l, "right")
     fig.subplots_adjust(left=0.07, right=0.98, bottom=0.13, top=0.90, wspace=0.04)
-    export_figure(fig, "publication_year_distribution")
+    export_figure(fig, "fig1a_publication_year_distribution")
     plt.close(fig)
 
 
@@ -1295,7 +1249,7 @@ def plot_sex_split(df: pd.DataFrame) -> None:
     ax.tick_params(axis="y", colors="#555555", length=0)
 
     fig.tight_layout()
-    export_figure(fig, "sex_split_distribution")
+    export_figure(fig, "fig1d_sex_split_distribution")
     plt.close(fig)
 
 
@@ -1339,7 +1293,7 @@ def plot_replicability_criteria(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "replicability_criteria_reporting")
+    export_figure(fig, "fig7a_replicability_criteria_reporting")
     plt.close(fig)
 
 
@@ -1392,7 +1346,7 @@ def plot_replicability_summary(df: pd.DataFrame) -> None:
         color="#555555",
     )
     fig.tight_layout()
-    export_figure(fig, "replicability_summary")
+    export_figure(fig, "fig7b_replicability_summary")
     plt.close(fig)
 
 
@@ -1402,9 +1356,8 @@ def plot_replicability_by_venue(df: pd.DataFrame) -> None:
         return
 
     venue_frame = df.copy()
-    venue_frame["_venue"] = venue_frame["Journal"].apply(classify_venue)
-    venue_counts = venue_frame["_venue"].value_counts()
-    venue_summary = venue_frame.groupby("_venue")["replicable"].agg(total="size", replicable="sum")
+    venue_counts = venue_frame["venue_domain"].value_counts()
+    venue_summary = venue_frame.groupby("venue_domain")["replicable"].agg(total="size", replicable="sum")
     venue_summary["replicable_pct"] = venue_summary["replicable"] / venue_summary["total"] * 100
     venue_summary = venue_summary.reindex(venue_counts.index).dropna(subset=["replicable_pct"])
 
@@ -1435,7 +1388,7 @@ def plot_replicability_by_venue(df: pd.DataFrame) -> None:
     for spine in ["top", "right", "left", "bottom"]:
         ax.spines[spine].set_visible(False)
 
-    ax.set_title("Replicable Studies by Publishing Venue", loc="left", pad=8, color="#1F1F1F")
+    ax.set_title("Replicable Studies by Publishing Venue Domain", loc="left", pad=8, color="#1F1F1F")
     ax.set_xlabel("Replicable share within venue group (%)", color="#3A3A3A", labelpad=6)
     ax.set_ylabel("")
     ax.set_xlim(0, 100)
@@ -1454,7 +1407,7 @@ def plot_replicability_by_venue(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "replicability_by_venue")
+    export_figure(fig, "fig7d_replicability_by_venue")
     plt.close(fig)
 
 
@@ -1509,7 +1462,7 @@ def plot_top_journals(df: pd.DataFrame, top_n: int = 10) -> None:
 
 
 def plot_journal_category_pie(df: pd.DataFrame) -> None:
-    venue_labels = df["Journal"].apply(classify_venue)
+    venue_labels = df["venue_domain"]
     venue_counts = venue_labels.value_counts()
 
     if venue_counts.empty:
@@ -1519,11 +1472,11 @@ def plot_journal_category_pie(df: pd.DataFrame) -> None:
     set_plot_style()
 
     palette = {
-        "Architecture / Built-environment / Design": "#0B3C5D",
-        "Nature / Environment / Landscape / Health": "#2A9D8F",
-        "Engineering / Acoustics / Technology": "#4CC9A6",
-        "Neuroscience / Psychology": "#6BA8B8",
-        "Other / Unclassified": "#A8E6CF",
+        "Architecture / Design / Built Environment": "#0B3C5D",
+        "Nature / Landscape / Environment / Ecology": "#2A9D8F",
+        "Engineering / Technology / Acoustics / Thermal": "#4CC9A6",
+        "Neuroscience / Psychology / Medicine": "#6BA8B8",
+        "Multidisciplinary": "#A8E6CF",
     }
     colors = [palette.get(label, "#7C817A") for label in venue_counts.index]
 

@@ -141,87 +141,6 @@ RESEARCH_COMPANIES = {
     "acticap",
 }
 
-# --- Journal venue classification (keyword-based) ---
-VENUE_KEYWORDS = {
-    "Architecture / Built-environment / Design": [
-        "building",
-        "architect",
-        "construction",
-        "facility",
-        "facilities",
-        "habitat",
-        "indoor",
-        "interior",
-        "structural",
-        "built environment",
-        "design stud",
-        "design research",
-    ],
-    "Nature / Environment / Landscape / Health": [
-        "environment",
-        "nature",
-        "landscape",
-        "forest",
-        "urban forest",
-        "green",
-        "ecological",
-        "ecology",
-        "land",
-        "public health",
-        "health promot",
-        "epidemi",
-        "preventive",
-        "environ res",
-        "sustainability",
-        "sustainable",
-        "cities",
-        "urban plan",
-        "frontiers in public",
-        "int j environ",
-    ],
-    "Engineering / Acoustics / Technology": [
-        "engineer",
-        "acoustic",
-        "applied sci",
-        "sensor",
-        "ieee",
-        "signal process",
-        "measurement",
-        "instrum",
-        "comput",
-        "simulation",
-        "technolog",
-    ],
-    "Neuroscience / Psychology": [
-        "neurosci",
-        "psychol",
-        "brain",
-        "cognit",
-        "neural",
-        "behav",
-        "neuroimag",
-        "psychophysiol",
-        "neuroergon",
-        "affect",
-        "front hum neurosci",
-        "front psychol",
-        "j environ psychol",
-        "sci rep",
-        "scientific reports",
-        "plos one",
-        "elife",
-        "j cog neurosci",
-        "psychophysiology",
-        "neuroimage",
-        "j neurosci",
-        "pnas",
-        "euro j neurosci",
-        "cerebral cortex",
-        "eneuro",
-        "brain sci",
-    ],
-}
-
 # Western countries (for geographic analysis)
 WESTERN = {
     "usa",
@@ -303,28 +222,6 @@ def parse_pct(val: object) -> float | None:
     except ValueError:
         return None
 
-
-def classify_venue(journal: str) -> str:
-    j = str(journal).lower().strip()
-    # Neuroscience/Psychology checked first (takes priority over generic keywords)
-    for label, kws in [
-        ("Neuroscience / Psychology", VENUE_KEYWORDS["Neuroscience / Psychology"]),
-        (
-            "Architecture / Built-environment / Design",
-            VENUE_KEYWORDS["Architecture / Built-environment / Design"],
-        ),
-        (
-            "Nature / Environment / Landscape / Health",
-            VENUE_KEYWORDS["Nature / Environment / Landscape / Health"],
-        ),
-        (
-            "Engineering / Acoustics / Technology",
-            VENUE_KEYWORDS["Engineering / Acoustics / Technology"],
-        ),
-    ]:
-        if any(kw in j for kw in kws):
-            return label
-    return "Other / Unclassified"
 
 
 def parse_multicoded(val: object) -> list[str]:
@@ -771,10 +668,9 @@ def section_publication_venue(df: pd.DataFrame) -> None:
     sep("11. PUBLICATION VENUE")
 
     df = df.copy()
-    df["_venue"] = df["Journal"].apply(classify_venue)
 
     print("  Venue group counts:")
-    venue_counts = df["_venue"].value_counts()
+    venue_counts = df["venue_domain"].value_counts()
     for v, cnt in venue_counts.items():
         print(f"    {v:<50} {pct(cnt, total)}")
 
@@ -782,7 +678,7 @@ def section_publication_venue(df: pd.DataFrame) -> None:
         sep("  Replicability by venue group")
         rows = []
         for v in venue_counts.index:
-            sub = df[df["_venue"] == v]
+            sub = df[df["venue_domain"] == v]
             rep = sub["replicable"].sum()
             nr = len(sub) - rep
             mean_score = (
@@ -808,7 +704,9 @@ def section_publication_venue(df: pd.DataFrame) -> None:
     # Top journals overall
     sep("  Top journals (all)")
     for j, cnt in df["Journal"].value_counts().head(15).items():
-        v = classify_venue(str(j))
+        journal_rows = df[df["Journal"] == j]
+        venue_values = journal_rows["venue_domain"].dropna().astype(str).str.strip()
+        v = venue_values.mode().iat[0] if not venue_values.empty else "NA"
         print(f"  {str(j):<55} {cnt:>3}  [{v[:25]}]")
 
     if "replicable" in df.columns:
@@ -891,10 +789,10 @@ if __name__ == "__main__":
         "--csv",
         type=Path,
         default=Path(__file__).parent.parent
-        / "NeuroUrbanism-DB"
+        / "EnviroBrainBase"
         / "data"
         / "papers.csv",
-        help="Path to papers.csv  (default: ../NeuroUrbanism-DB/data/papers.csv)",
+        help="Path to papers.csv  (default: ../EnviroBrainBase/data/papers.csv)",
     )
     parser.add_argument(
         "--plots",

@@ -8,7 +8,7 @@ authors:
     affiliation: "Technische Universität Berlin, Germany"
   - family-names: Sander
     given-names: Isabelle
-    affiliation: "Technische Universität Berlin, Germany"
+    affiliation: "Technische Universität Berlin, Germany & Max Planck School of Cognition, Germany"
   - family-names: Estudillo
     given-names: Jorge
     affiliation: "Technische Universität Berlin, Germany"
@@ -19,7 +19,7 @@ repository-code: "https://github.com/BeMoBIL/EnviroBrainBase"
 license: CC-BY-4.0
 keywords:
   - EEG
-  - neuroscience
+  - environmental neuroscience
   - architecture
   - urbanism
   - nature

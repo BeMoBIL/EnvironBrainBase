@@ -78,6 +78,23 @@ def set_plot_style() -> None:
     )
 
 
+ANALYTIC_DOMAIN_PATTERNS: dict[str, str] = {
+    "Frequency domain": r"\bfrequency\b",
+    "Time domain": r"\btime\b",
+    "ERS/ERD": r"\bers/erd\b",
+    "Proprietary output": r"\bproprietary\b",
+    "Other": r"\bsloreta\b|\bmicrostates?\b|\bentropy\b|\bnonlinear dynamics\b|\bCNV\b|\bClassification methods\b|\bconnectivity\b ",
+}
+
+
+def _analytic_domain_masks(series: pd.Series) -> dict[str, pd.Series]:
+    text = series.fillna("").astype(str)
+    return {
+        label: text.str.contains(pattern, case=False, regex=True, na=False)
+        for label, pattern in ANALYTIC_DOMAIN_PATTERNS.items()
+    }
+
+
 def plot_research_topic(df: pd.DataFrame) -> None:
     broad_values = []
     for raw in df["Research Topic"].dropna():
@@ -712,29 +729,9 @@ def plot_non_replicability_by_topic(df: pd.DataFrame) -> None:
 
 def plot_analytic_domain(df: pd.DataFrame) -> None:
     total = len(df)
+    domain_masks = _analytic_domain_masks(df["EEG_parameter_space"])
     domain_counts = pd.Series(
-        {
-            "Frequency domain": df["EEG_features_cat"]
-            .astype(str)
-            .str.contains(r"\b2\b", regex=True, na=False)
-            .sum(),
-            "Time domain (ERP)": df["EEG_features_cat"]
-            .astype(str)
-            .str.contains(r"\b1\b", regex=True, na=False)
-            .sum(),
-            "Functional connectivity": df["EEG_features_cat"]
-            .astype(str)
-            .str.contains(r"\b3\b", regex=True, na=False)
-            .sum(),
-            "Source localisation": df["EEG_features_cat"]
-            .astype(str)
-            .str.contains(r"\b4\b", regex=True, na=False)
-            .sum(),
-            "Proprietary output": df["EEG_features_cat"]
-            .astype(str)
-            .str.contains(r"(?:9|propriat)", regex=True, na=False)
-            .sum(),
-        }
+        {label: int(mask.sum()) for label, mask in domain_masks.items()}
     ).sort_values(ascending=True)
 
     if domain_counts.sum() == 0:
@@ -745,10 +742,10 @@ def plot_analytic_domain(df: pd.DataFrame) -> None:
 
     palette = {
         "Frequency domain": "#0B3C5D",
-        "Time domain (ERP)": "#2A9D8F",
-        "Functional connectivity": "#4CC9A6",
-        "Source localisation": "#6BA8B8",
+        "Time domain": "#2A9D8F",
+        "ERS/ERD": "#7C9885",
         "Proprietary output": "#A8E6CF",
+        "Other": "#6BA8B8",
     }
 
     fig, ax = plt.subplots(figsize=(7.2, 4.8), dpi=300)
@@ -786,9 +783,7 @@ def plot_analytic_domain(df: pd.DataFrame) -> None:
 
 
 def plot_frequency_bands(df: pd.DataFrame) -> None:
-    freq_mask = (
-        df["EEG_features_cat"].astype(str).str.contains(r"\b2\b", regex=True, na=False)
-    )
+    freq_mask = _analytic_domain_masks(df["EEG_parameter_space"])["Frequency domain"]
     ps_freq = df.loc[freq_mask, "EEG_parameter_space"].astype(str)
     freq_total = len(ps_freq)
 
@@ -851,7 +846,7 @@ def plot_multimodal_prevalence(df: pd.DataFrame) -> None:
 
     om = multimodal_df["other_measures"].astype(str).str.lower()
     modalities = {
-        "ECG / HRV": om.str.contains(r"ecg|hrv|heart rate", na=False),
+        "ECG": om.str.contains(r"ecg|hrv|heart rate", na=False),
         "EDA": om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
         "Eye-tracking": om.str.contains(r"eye.?track|eyetrack", na=False),
         "Blood pressure": om.str.contains(r"blood.?press", na=False),

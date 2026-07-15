@@ -98,15 +98,6 @@ ABSENT: frozenset[str] = frozenset(
     }
 )
 
-# --- EEG feature category codes ---
-FEAT_LABELS = {
-    "1": "Time domain (ERP)",
-    "2": "Frequency domain",
-    "3": "Connectivity",
-    "4": "Source localisation",
-    "9": "Proprietary",
-}
-
 # --- Consumer vs research-grade EEG companies ---
 CONSUMER_COMPANIES = {
     "emotiv",
@@ -229,6 +220,23 @@ def parse_multicoded(val: object) -> list[str]:
     if pd.isna(val):
         return []
     return [t.strip() for t in re.split(r"[,;/]", str(val)) if t.strip()]
+
+
+ANALYTIC_DOMAIN_PATTERNS: dict[str, str] = {
+    "Frequency domain": r"\bfrequency\b",
+    "Time domain": r"\btime\b",
+    "ERS/ERD": r"\bers/erd\b",
+    "Proprietary output": r"\bproprietary\b",
+    "Other": r"\bsloreta\b|\bmicrostates?\b|\bentropy\b|\bnonlinear dynamics\b|\bCNV\b|\bClassification methods\b|\bconnectivity\b ",
+}
+
+def analytic_domain_masks(series: pd.Series) -> dict[str, pd.Series]:
+    """Map EEG_parameter_space text to analytic-domain boolean masks."""
+    text = series.fillna("").astype(str)
+    return {
+        label: text.str.contains(pattern, case=False, regex=True, na=False)
+        for label, pattern in ANALYTIC_DOMAIN_PATTERNS.items()
+    }
 
 
 # %%
@@ -477,37 +485,22 @@ def section_eeg_features(df: pd.DataFrame) -> None:
     total = len(df)
     sep("6. EEG FEATURES & ANALYTIC DOMAIN")
 
-    # Parse EEG_features_cat (may be multi-coded: "1, 2")
-    feat_col = "EEG_features_cat"
-    has_erp = (
-        df[feat_col].astype(str).str.contains(r"\b1\b", regex=True, na=False).sum()
+    domain_masks = analytic_domain_masks(df["EEG_parameter_space"])
+    has_freq = int(domain_masks["Frequency domain"].sum())
+    has_time = int(domain_masks["Time domain"].sum())
+    has_ers_erd = int(domain_masks["ERS/ERD"].sum())
+    has_prop = int(domain_masks["Proprietary output"].sum())
+    has_other = int(domain_masks["Other"].sum())
+    time_and_freq = int(
+        (domain_masks["Time domain"] & domain_masks["Frequency domain"]).sum()
     )
-    has_freq = (
-        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False).sum()
-    )
-    has_conn = (
-        df[feat_col].astype(str).str.contains(r"\b3\b", regex=True, na=False).sum()
-    )
-    has_src = (
-        df[feat_col].astype(str).str.contains(r"\b4\b", regex=True, na=False).sum()
-    )
-    has_prop = (
-        df[feat_col]
-        .astype(str)
-        .str.contains(r"(?:9|propriat)", regex=True, na=False)
-        .sum()
-    )
-    both_12 = df[feat_col].astype(str).str.contains(r"\b1\b", na=False) & df[
-        feat_col
-    ].astype(str).str.contains(r"\b2\b", na=False)
-    n_both_12 = both_12.sum()
 
     print(f"  Frequency domain:           {pct(has_freq, total)}")
-    print(f"  Time domain (ERP):          {pct(has_erp, total)}")
-    print(f"  Functional connectivity:    {pct(has_conn, total)}")
-    print(f"  Source localisation:        {pct(has_src, total)}")
+    print(f"  Time domain:                {pct(has_time, total)}")
+    print(f"  ERS/ERD:                    {pct(has_ers_erd, total)}")
     print(f"  Proprietary output:         {pct(has_prop, total)}")
-    print(f"  Both time + freq domain:    {pct(n_both_12, total)}")
+    print(f"  Other:                      {pct(has_other, total)}")
+    print(f"  Both time + freq domain:    {pct(time_and_freq, total)}")
 
     # Frequency bands from EEG_parameter_space
     sep("  Frequency band prevalence (EEG_parameter_space)")
@@ -519,24 +512,25 @@ def section_eeg_features(df: pd.DataFrame) -> None:
     gamma_pat = r"[λγ]|gamma"  # λ is used as gamma in this CSV
     delta_pat = r"[δ]|delta"
 
-    freq_papers = df[
-        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False)
-    ]
+    freq_papers = df[domain_masks["Frequency domain"]]
     n_freq = len(freq_papers)
     ps_freq = freq_papers["EEG_parameter_space"].astype(str)
 
-    for band, pat in [
-        ("Alpha", alpha_pat),
-        ("Beta", beta_pat),
-        ("Theta", theta_pat),
-        ("Gamma (λ)", gamma_pat),
-        ("Delta", delta_pat),
-    ]:
-        n_band = ps_freq.str.contains(pat, case=False, regex=True, na=False).sum()
-        n_all = ps.str.contains(pat, case=False, regex=True, na=False).sum()
-        print(
-            f"  {band:<12} in freq sub-corpus: {pct(n_band, n_freq)}  |  full corpus: {pct(n_all, total)}"
-        )
+    if n_freq == 0:
+        print("  No frequency-domain papers found in EEG_parameter_space.")
+    else:
+        for band, pat in [
+            ("Alpha", alpha_pat),
+            ("Beta", beta_pat),
+            ("Theta", theta_pat),
+            ("Gamma (λ)", gamma_pat),
+            ("Delta", delta_pat),
+        ]:
+            n_band = ps_freq.str.contains(pat, case=False, regex=True, na=False).sum()
+            n_all = ps.str.contains(pat, case=False, regex=True, na=False).sum()
+            print(
+                f"  {band:<12} in freq sub-corpus: {pct(n_band, n_freq)}  |  full corpus: {pct(n_all, total)}"
+            )
 
     # Alpha separately from alpha_para
     alpha_any = df["alpha_para"].isin([1.0, 2.0]).sum()

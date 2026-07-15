@@ -323,7 +323,7 @@ def plot_motivation(df: pd.DataFrame) -> None:
         t.set_fontsize(8)
     ax.set_title("Motivation Distribution", loc="left", pad=8, color="#1F1F1F")
     plt.tight_layout()
-    export_figure(fig, "motivation_distribution")
+    export_figure(fig, "fig8_motivation_distribution")
     plt.close(fig)
 
 
@@ -1195,7 +1195,7 @@ def plot_data_availability(df: pd.DataFrame) -> None:
     ]
     ax.legend(handles=legend_handles, frameon=True, loc="upper left", ncol=2)
     fig.tight_layout()
-    export_figure(fig, "fig8_data_availability_by_year")
+    export_figure(fig, "fig9_data_availability_by_year")
     plt.close(fig)
 
 

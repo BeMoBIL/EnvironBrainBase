@@ -42,6 +42,7 @@ from plots import (
     plot_replicability_summary,
     plot_research_topic,
     plot_sex_split,
+    plot_stimulus_material_visual,
     plot_study_design,
     plot_study_design_by_research_object,
     plot_top_eeg_systems,
@@ -789,6 +790,7 @@ def main(csv_path: Path, plots: bool = True) -> None:
         plot_research_topic(df)
         plot_non_replicability_by_topic(df)
         plot_motivation(df)
+        plot_stimulus_material_visual(df)
     section_eeg_features(df)
     if plots:
         plot_analytic_domain(df)

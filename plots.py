@@ -180,6 +180,106 @@ def plot_research_topic(df: pd.DataFrame) -> None:
     plt.close(fig2)
 
 
+def plot_stimulus_material_visual(df: pd.DataFrame) -> None:
+    column = "stimulus material (visual)"
+    if column not in df.columns:
+        print(
+            f"  Column '{column}' not found; skipping stimulus_material_visual plot."
+        )
+        return
+
+    stimulus_values = []
+    for raw in df[column].dropna():
+        stimulus_values.extend(split_values(raw))
+
+    if not stimulus_values:
+        print(
+            "  No stimulus material data found; skipping stimulus_material_visual plot."
+        )
+        return
+
+    def normalize_stimulus_type(value: object) -> str:
+        text = str(value).strip().lower()
+        if not text:
+            return "Other"
+
+        # Specific HMD labels must be checked before broader still-image/video rules.
+        if re.search(r"\bstill images?\s*\(hmd\)", text):
+            return "Virtual reality"
+        if re.search(r"\bvideo immersive\s*\(hmd\)", text):
+            return "Virtual reality"
+
+        if re.search(r"\breal world\b", text):
+            return "Real world"
+        if re.search(r"\bstill images?\b", text):
+            return "Still images"
+        if re.search(r"\bvirtual reality\b|\bvr\b", text):
+            return "Virtual reality"
+        if re.search(r"\bvideo\b", text):
+            return "Video"
+        if re.search(r"\baudio recordings?\b|\baudio\b", text):
+            return "Audio recordings"
+        if re.search(r"\bsmells?\b|\bolfactory\b", text):
+            return "Smells"
+        if re.search(r"\btemperature\b", text):
+            return "Temperature"
+        if re.search(r"\blighting\b", text):
+            return "Lighting"
+        if re.search(r"\btext\b|\bword\b|\bletters?\b", text):
+            return "Text / words"
+        return str(value).strip().title()
+
+    counts = pd.Series([normalize_stimulus_type(value) for value in stimulus_values])
+    counts = counts.value_counts()
+
+    if counts.empty:
+        print(
+            "  No stimulus material categories found; skipping stimulus_material_visual plot."
+        )
+        return
+
+    counts = counts.sort_values(ascending=True)
+
+    set_plot_style()
+
+    fig, ax = plt.subplots(figsize=(8.0, 5.2), dpi=300)
+    bars = ax.barh(counts.index, counts.values, color="#5E8CA8", height=0.62)
+
+    ax.grid(axis="x", color="#D9D7D0", linestyle="-", linewidth=0.6, alpha=0.55)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right", "left", "bottom"]:
+        ax.spines[spine].set_visible(False)
+
+    ax.set_title(
+        "Stimulus Presentation Types (Visual Material)",
+        loc="left",
+        pad=8,
+        color="#1F1F1F",
+    )
+    ax.set_xlabel("Number of studies", color="#3A3A3A", labelpad=6)
+    ax.set_ylabel("")
+    ax.tick_params(axis="x", colors="#555555", length=0)
+    ax.tick_params(axis="y", colors="#2A2A2A", length=0, pad=6)
+
+    max_count = int(counts.max()) if not counts.empty else 0
+    total = int(len(df))
+    for bar, count in zip(bars, counts.values):
+        pct_value = (count / total * 100) if total > 0 else 0
+        ax.text(
+            bar.get_width() + max_count * 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{pct_value:.1f}%",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="#4A4A4A",
+        )
+
+    fig.tight_layout()
+    export_figure(fig, "stimulus_material_visual_distribution")
+    plt.close(fig)
+
+
 def plot_motivation(df: pd.DataFrame) -> None:
     motivation_values = []
     for raw in df["Motivation"].dropna():

@@ -271,30 +271,26 @@ def section_study_design(df: pd.DataFrame) -> None:
     realworld = df["lab_realworld_binary"].eq(2).sum()
     combined = df["lab_realworld_binary"].eq(3).sum()
     hmd = (
-        df["EEG_system_mobile_stationary"]
+        df["stimulus material (visual)"]
         .str.lower()
         .str.strip()
-        .eq("stat - hmd")
+        .isin(
+            [
+                "still images (hmd)",
+                "virtual reality (hmd)",
+                "video immersive (hmd)",
+            ]
+        )
         .sum()
     )
-    lab_incl_hmd = lab + hmd  # VR/HMD counted as lab
-    print(f"  Lab (incl. HMD/VR): {pct(lab_incl_hmd, total)}")
-    print(f"    of which HMD/VR:  {pct(hmd, total)}")
-    combined = df["lab_realworld_binary"].eq(3).sum()
-    hmd = (
-        df["EEG_system_mobile_stationary"]
-        .str.lower()
-        .str.strip()
-        .eq("stat - hmd")
-        .sum()
-    )
+
     # lab_incl_hmd = lab + hmd  # VR/HMD counted as lab -> already included in lab count
     print(f"  Lab (incl. HMD/VR): {pct(lab, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, lab)}")
-    print(f"  Real-world (mobile): {pct(realworld, total)}")
+    print(f"  Real-world: {pct(realworld, total)}")
     print(f"  Combined lab+field:  {pct(combined, total)}")
 
-    sep("  Mobility breakdown (EEG_system_mobile_stationary)")
+    sep("  Mobility breakdown")
     mob = (
         df["EEG_system_mobile_stationary"]
         .str.lower()
@@ -449,7 +445,7 @@ def section_research_focus(df: pd.DataFrame) -> None:
             n_hmd = sub["mobility"].eq("stat - hmd").sum()
             n_mobile = sub["mobility"].str.contains("mobile", na=False).sum()
             print(f"  {topic} (n={n_sub}):")
-            print(f"    Stationary lab: {pct(int(n_stat), n_sub)}")
+            print(f"    Stationary: {pct(int(n_stat), n_sub)}")
             print(f"    HMD/VR:         {pct(int(n_hmd), n_sub)}")
             print(f"    Mobile:         {pct(int(n_mobile), n_sub)}")
 

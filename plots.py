@@ -349,7 +349,7 @@ def plot_study_design(df: pd.DataFrame) -> None:
     design_counts = pd.Series(
         {
             "Lab (incl. HMD/VR)": df["lab_realworld_binary"].eq(1).sum(),
-            "Real-world (mobile)": df["lab_realworld_binary"].eq(2).sum(),
+            "Real-world": df["lab_realworld_binary"].eq(2).sum(),
             "Combined lab+field": df["lab_realworld_binary"].eq(3).sum(),
         }
     )
@@ -442,7 +442,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
 
     count_table = pd.DataFrame(
         {
-            "Stationary lab": summary["stationary"],
+            "Stationary": summary["stationary"],
             "HMD/VR": summary["hmd"],
             "Mobile": summary["mobile"],
         }
@@ -454,7 +454,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
     set_plot_style()
 
     colors = {
-        "Stationary lab": "#0B3C5D",
+        "Stationary": "#0B3C5D",
         "HMD/VR": "#2A9D8F",
         "Mobile": "#A8E6CF",
         "Other/NA": "#D7DEE3",
@@ -465,7 +465,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
     y_labels = count_table.index.tolist()
     totals = summary["total"].to_numpy()
 
-    for column in ["Stationary lab", "HMD/VR", "Mobile", "Other/NA"]:
+    for column in ["Stationary", "HMD/VR", "Mobile", "Other/NA"]:
         values = count_table[column].to_numpy()
         bars = ax.barh(
             y_labels, values, left=left, color=colors[column], height=0.62, label=column
@@ -481,7 +481,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
                     va="center",
                     fontsize=8,
                     color="white"
-                    if column in {"Stationary lab", "HMD/VR"}
+                    if column in {"Stationary", "HMD/VR"}
                     else "#1F1F1F",
                 )
         left += values

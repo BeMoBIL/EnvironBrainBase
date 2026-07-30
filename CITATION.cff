@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "EnviroBrainBase: a living database of EEG studies on architecture, urbanism, and nature"
+title: "EnvironBrainBase: a living database of EEG studies on architecture, urbanism, and nature"
 message: "If you use this database, please cite the specific Zenodo-minted version DOI listed in the README."
 type: dataset
 authors:
@@ -15,7 +15,7 @@ authors:
   - family-names: Gramann
     given-names: Klaus
     affiliation: "Technische Universität Berlin, Germany"
-repository-code: "https://github.com/BeMoBIL/EnviroBrainBase"
+repository-code: "https://github.com/BeMoBIL/EnvironBrainBase"
 license: CC-BY-4.0
 keywords:
   - EEG

@@ -1,11 +1,11 @@
-# EnviroBrainBase
+# EnvironBrainBase
 
 A living, open-access database of EEG studies on architecture, urbanism, and
 nature: the substrate for systematic and ongoing review.
 
-- **Live app:** <https://EnviroBrainBase.streamlit.app/>
+- **Live app:** <https://EnvironBrainBase.streamlit.app/>
 - **Citation (latest snapshot):** [10.5281/zenodo.20023201](https://zenodo.org/records/20023201)
-- **Submit a paper:** through the [website form](https://EnviroBrainBase.streamlit.app/Submit_a_paper) or via a [PR](https://github.com/BeMoBIL/EnviroBrainBase/pulls).
+- **Submit a paper:** through the [website form](https://EnvironBrainBase.streamlit.app/Submit_a_paper) or via a [PR](https://github.com/BeMoBIL/EnvironBrainBase/pulls).
 
 This database is a fork-style sibling of
 [InterBrainDB](https://github.com/acv132/InterBrainDB) (Fraunhofer IAO), which

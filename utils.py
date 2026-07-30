@@ -1,5 +1,5 @@
 """
-Shared utilities for EnviroBrainBase Streamlit pages.
+Shared utilities for EnvironBrainBase Streamlit pages.
 """
 
 from __future__ import annotations

@@ -823,10 +823,10 @@ if __name__ == "__main__":
         "--csv",
         type=Path,
         default=Path(__file__).parent.parent
-        / "EnviroBrainBase"
+        / "EnvironBrainBase"
         / "data"
         / "papers.csv",
-        help="Path to papers.csv  (default: ../EnviroBrainBase/data/papers.csv)",
+        help="Path to papers.csv  (default: ../EnvironBrainBase/data/papers.csv)",
     )
     parser.add_argument(
         "--plots",

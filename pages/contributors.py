@@ -1,5 +1,5 @@
 """
-EnviroBrainBase: Contributors page.
+EnvironBrainBase: Contributors page.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def _contribution_stats() -> pd.DataFrame:
 def main() -> None:
     st.title("👥 Contributors")
     st.markdown(
-        "EnviroBrainBase is built and maintained by a team at "
+        "EnvironBrainBase is built and maintained by a team at "
         "Technische Universität Berlin, with contributions from the wider "
         "neuro-urbanism community."
     )
@@ -146,7 +146,7 @@ def main() -> None:
 
     st.markdown(
         "**Repository:** "
-        "[github.com/BeMoBIL/EnviroBrainBase](https://github.com/BeMoBIL/EnviroBrainBase)"
+        "[github.com/BeMoBIL/EnvironBrainBase](https://github.com/BeMoBIL/EnvironBrainBase)"
     )
 
 

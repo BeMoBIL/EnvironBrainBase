@@ -1,5 +1,5 @@
 """
-EnviroBrainBase: Database (browse + filter + plots) page.
+EnvironBrainBase: Database (browse + filter + plots) page.
 
 Two tabs, both driven by the same sidebar filters:
   1. Data overview: descriptives + browsable table + per-paper detail.

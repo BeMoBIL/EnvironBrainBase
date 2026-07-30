@@ -1,5 +1,5 @@
 """
-EnviroBrainBase: navigation router.
+EnvironBrainBase: navigation router.
 
 Streamlit Community Cloud entrypoint. All page content lives in ./pages/.
 Using st.navigation() (Streamlit >= 1.36) for full control over labels and grouping.
@@ -10,7 +10,7 @@ from __future__ import annotations
 import streamlit as st
 
 st.set_page_config(
-    page_title="EnviroBrainBase",
+    page_title="EnvironBrainBase",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",

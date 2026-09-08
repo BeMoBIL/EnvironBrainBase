@@ -56,27 +56,22 @@ from plots import (
 # --- Replicability criteria (raw CSV column names) ---
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
-    # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
     "online_filters": "Online filters applied",
+    "offline_filters": "Offline filters applied",
     "num_channels": "Number of channels",
-    "electrode_type": "Electrode type",
+    # "electrode_type": "Electrode type", -> decided not necessary for replicability
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
-    # offline filter handled separately as either/or (see offline_filter_present)
-}
-OFFLINE_COLS = {
-    "flag": "offline_filters",
-    "highpass": "Offline_High-Pass_(Hz)",
-    "lowpass": "Offline_Low-Pass_(Hz)",
 }
 GOOD_COLS: dict[str, str] = {
     "channel_interpolation": "Channel interpolation",
     "Impedance": "Impedance",
     "EEG_company": "EEG company",
     "EEG_system": "EEG system",
+    "electrode_type": "Electrode type",
 }
-N_MAX = len(NECESSARY_COLS) + 1  # 9 (8 simple + 1 offline either/or)
+N_MAX = len(NECESSARY_COLS)  # 9
 
 ABSENT: frozenset[str] = frozenset(
     {
@@ -104,41 +99,6 @@ FEAT_LABELS = {
     "3": "Connectivity",
     "4": "Source localisation",
     "9": "Proprietary",
-}
-
-# --- Consumer vs research-grade EEG companies ---
-CONSUMER_COMPANIES = {
-    "emotiv",
-    "neurosky",
-    "muse",
-    "interaxon",
-    "kingfar",
-    "ergolab",
-    "openbci",
-    "neurosity",
-    "brainlink",
-    "mindmedia",
-    "mindo",
-}
-RESEARCH_COMPANIES = {
-    "brain products",
-    "brainproducts",
-    "compumedics",
-    "neuroscan",
-    "biosemi",
-    "ant neuro",
-    "g.tec",
-    "gtec",
-    "egi",
-    "electrical geodesics",
-    "nihon kohden",
-    "natus",
-    "biopac",
-    "mitsar",
-    "micromed",
-    "xltek",
-    "noldus",
-    "acticap",
 }
 
 # Western countries (for geographic analysis)
@@ -192,19 +152,9 @@ def is_present(val: object) -> bool:
     return str(val).strip().lower() not in ABSENT
 
 
-def offline_filter_present(row: pd.Series) -> bool:
-    """Satisfied if offline_filters is present OR both HP+LP cutoffs are present."""
-    if is_present(row.get(OFFLINE_COLS["flag"], "")):
-        return True
-    return is_present(row.get(OFFLINE_COLS["highpass"], "")) and is_present(
-        row.get(OFFLINE_COLS["lowpass"], "")
-    )
-
-
 def score_row(row: pd.Series) -> dict:
     # Prefix with "rep_" to avoid colliding with original CSV columns
     flags = {f"rep_{col}": is_present(row.get(col, "")) for col in NECESSARY_COLS}
-    flags["rep_offline_filter"] = offline_filter_present(row)
     good = {f"good_{col}": is_present(row.get(col, "")) for col in GOOD_COLS}
     n = sum(flags.values())
     g = sum(good.values())
@@ -268,22 +218,31 @@ def section_study_design(df: pd.DataFrame) -> None:
         .eq("stat - hmd")
         .sum()
     )
-    lab_incl_hmd = lab + hmd  # VR/HMD counted as lab
-    print(f"  Lab (incl. HMD/VR): {pct(lab_incl_hmd, total)}")
-    print(f"    of which HMD/VR:  {pct(hmd, total)}")
-    combined = df["lab_realworld_binary"].eq(3).sum()
-    hmd = (
-        df["EEG_system_mobile_stationary"]
-        .str.lower()
-        .str.strip()
-        .eq("stat - hmd")
-        .sum()
-    )
-    # lab_incl_hmd = lab + hmd  # VR/HMD counted as lab -> already included in lab count
+
     print(f"  Lab (incl. HMD/VR): {pct(lab, total)}")
     print(f"    of which HMD/VR:  {pct(hmd, lab)}")
-    print(f"  Real-world (mobile): {pct(realworld, total)}")
-    print(f"  Combined lab+field:  {pct(combined, total)}")
+
+    print(f"  Real-world:         {pct(realworld, total)}")
+    print(f"  Combined lab+field: {pct(combined, total)}")
+
+    lab_and_mobile = (
+        df["lab_realworld_binary"].eq(1)
+        & df["EEG_system_mobile_stationary"].str.lower().str.strip().str.contains("mobile", na=False)
+    ).sum()
+    print(f"  Mobile protocols in lab: {pct(lab_and_mobile, total)}")
+
+    real_world_and_mobile = (
+            df["lab_realworld_binary"].eq(2)
+            & df["EEG_system_mobile_stationary"].str.lower().str.strip().str.contains("mobile", na=False)
+        ).sum()
+    print(f"  Mobile protocols in real-world: {pct(real_world_and_mobile, total)}")
+
+    mobile_system_used_stat = (
+    df["system_mobility_score"].astype(str).str.strip().str.match(r"^[12345]\s*-")
+    & df["EEG_system_mobile_stationary"].str.lower().str.strip().eq("stat") & df["lab_realworld_binary"].eq(2)).sum()
+    print(f"  Mobile enabled systems used stationary outside lab: {pct(mobile_system_used_stat, total)}")
+    
+    # -------------------------------------------------------------------------------------
 
     sep("  Mobility breakdown (EEG_system_mobile_stationary)")
     mob = (
@@ -294,6 +253,7 @@ def section_study_design(df: pd.DataFrame) -> None:
     )
     for val, cnt in mob.items():
         print(f"    {str(val):<30} {pct(cnt, total)}")
+
 
 
 def section_demographics(df: pd.DataFrame) -> None:
@@ -347,14 +307,14 @@ def section_replicability(df: pd.DataFrame) -> pd.DataFrame:
     print(f"  Mean criteria met:   {df['n_necessary'].mean():.2f} / {N_MAX}")
 
     sep("  Per-criterion reporting rates (sorted low → high)")
-    rates: list[tuple[str, float]] = []
+    rates: list[tuple[str, float, int]] = []
     for col, label in NECESSARY_COLS.items():
-        rates.append((label, df[f"rep_{col}"].mean()))
-    rates.append(("Offline filter (either/or)", df["rep_offline_filter"].mean()))
+        col_bool = df[f"rep_{col}"]
+        rates.append((label, col_bool.mean(), int(col_bool.sum())))
     rates.sort(key=lambda x: x[1])
-    for label, rate in rates:
+    for label, rate, n_reported in rates:
         bar = "#" * round(rate * 30)
-        print(f"  {label:<35} {100 * rate:5.1f}%  {bar}")
+        print(f"  {label:<35} {100 * rate:5.1f}%  ({n_reported}/{total})  {bar}")
 
     sep("  Good-to-have reporting rates")
     for col, label in GOOD_COLS.items():
@@ -440,7 +400,7 @@ def section_research_focus(df: pd.DataFrame) -> None:
             n_hmd = sub["mobility"].eq("stat - hmd").sum()
             n_mobile = sub["mobility"].str.contains("mobile", na=False).sum()
             print(f"  {topic} (n={n_sub}):")
-            print(f"    Stationary lab: {pct(int(n_stat), n_sub)}")
+            print(f"    Stationary: {pct(int(n_stat), n_sub)}")
             print(f"    HMD/VR:         {pct(int(n_hmd), n_sub)}")
             print(f"    Mobile:         {pct(int(n_mobile), n_sub)}")
 
@@ -477,34 +437,32 @@ def section_eeg_features(df: pd.DataFrame) -> None:
     sep("6. EEG FEATURES & ANALYTIC DOMAIN")
 
     # Parse EEG_features_cat (may be multi-coded: "1, 2")
-    feat_col = "EEG_features_cat"
+    feat_col = "EEG_parameter_space"
     has_erp = (
-        df[feat_col].astype(str).str.contains(r"\b1\b", regex=True, na=False).sum()
+        df[feat_col].astype(str).str.contains(r"time",case=False, regex=True, na=False).sum()
     )
     has_freq = (
-        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False).sum()
+        df[feat_col].astype(str).str.contains(r"frequency",case=False, regex=True, na=False).sum()
     )
     has_conn = (
-        df[feat_col].astype(str).str.contains(r"\b3\b", regex=True, na=False).sum()
+        df[feat_col].astype(str).str.contains(r"connectivity",case=False, regex=True, na=False).sum()
     )
-    has_src = (
-        df[feat_col].astype(str).str.contains(r"\b4\b", regex=True, na=False).sum()
+    has_erd = (
+        df[feat_col].astype(str).str.contains(r"ERD", case=True, regex=True, na=False).sum()
     )
     has_prop = (
         df[feat_col]
         .astype(str)
-        .str.contains(r"(?:9|propriat)", regex=True, na=False)
+        .str.contains(r"proprietary",case=False, regex=True, na=False)
         .sum()
     )
-    both_12 = df[feat_col].astype(str).str.contains(r"\b1\b", na=False) & df[
-        feat_col
-    ].astype(str).str.contains(r"\b2\b", na=False)
+    both_12 = df[feat_col].astype(str).str.contains(r"time",case=False, regex=True, na=False) & df[feat_col].astype(str).str.contains(r"frequency",case=False, regex=True, na=False)
     n_both_12 = both_12.sum()
 
     print(f"  Frequency domain:           {pct(has_freq, total)}")
     print(f"  Time domain (ERP):          {pct(has_erp, total)}")
     print(f"  Functional connectivity:    {pct(has_conn, total)}")
-    print(f"  Source localisation:        {pct(has_src, total)}")
+    print(f"  ERSP:                       {pct(has_erd, total)}")
     print(f"  Proprietary output:         {pct(has_prop, total)}")
     print(f"  Both time + freq domain:    {pct(n_both_12, total)}")
 
@@ -515,37 +473,32 @@ def section_eeg_features(df: pd.DataFrame) -> None:
     alpha_pat = r"[⍺α]|alpha"
     beta_pat = r"[𝛽β]|beta"
     theta_pat = r"[𝜃θ]|theta"
-    gamma_pat = r"[λγ]|gamma"  # λ is used as gamma in this CSV
+    gamma_pat = r"[γ]|gamma"  #
     delta_pat = r"[δ]|delta"
 
     freq_papers = df[
-        df[feat_col].astype(str).str.contains(r"\b2\b", regex=True, na=False)
+    df[feat_col].astype(str).str.contains(r"frequency", case=False, regex=True, na=False)
     ]
-    n_freq = len(freq_papers)
-    ps_freq = freq_papers["EEG_parameter_space"].astype(str)
+    ps_freq = freq_papers["EEG_parameter_space"].astype(str)    
 
     for band, pat in [
         ("Alpha", alpha_pat),
         ("Beta", beta_pat),
         ("Theta", theta_pat),
-        ("Gamma (λ)", gamma_pat),
+        ("Gamma", gamma_pat),
         ("Delta", delta_pat),
     ]:
         n_band = ps_freq.str.contains(pat, case=False, regex=True, na=False).sum()
         n_all = ps.str.contains(pat, case=False, regex=True, na=False).sum()
         print(
-            f"  {band:<12} in freq sub-corpus: {pct(n_band, n_freq)}  |  full corpus: {pct(n_all, total)}"
+            f"  {band:<12} in freq sub-corpus: {pct(n_band, has_freq)}  |  full corpus: {pct(n_all, total)}"
         )
 
-    # Alpha separately from alpha_para
-    alpha_any = df["alpha_para"].isin([1.0, 2.0]).sum()
-    print(f"\n  Alpha (alpha_para col, any):  {pct(alpha_any, total)}")
-
+    sep("  Processing pipeline prevalence (from EEG_processing_pipeline)")
     # ICA usage
     ica_yes = df["ica_used"].eq(1.0).sum()
     ica_no = df["ica_used"].eq(0.0).sum()
-    ica_n = ica_yes + ica_no
-    print(f"\n  ICA used: {pct(ica_yes, ica_n)} (of {ica_n} reporting studies)")
+    print(f"\n  ICA used: {pct(ica_yes, total)}")
 
 
 def section_multimodal(df: pd.DataFrame) -> None:
@@ -560,17 +513,16 @@ def section_multimodal(df: pd.DataFrame) -> None:
     # Parse modalities from free-text other_measures
     om = df["other_measures"].dropna().astype(str).str.lower()
     modalities = {
-        "ECG / HRV": om.str.contains(r"ecg|hrv|heart rate", na=False),
+        "ECG/PPG": om.str.contains(r"ecg|hrv|ppg|bvp", na=False),
         "EDA": om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
-        "Eye-tracking": om.str.contains(r"eye.?track|eyetrack", na=False),
-        "Blood pressure": om.str.contains(r"blood.?press", na=False),
-        "Skin temperature": om.str.contains(r"skin.?temp|temperature", na=False),
-        "PPG": om.str.contains(r"\bppg\b|photopleth", na=False),
-        "Respiration": om.str.contains(r"resp|breath", na=False),
-        "EMG": om.str.contains(r"\bemg\b|electromyo", na=False),
-        "Motion / GPS": om.str.contains(r"\bgps\b|motion|accel|inertial", na=False),
-        "EOG": om.str.contains(r"\beog\b|electrooculo", na=False),
-        "Cortisol": om.str.contains(r"cortisol", na=False),
+        "Eye-tracking": om.str.contains(r"eye.?track|eyetrack|pupillometry", na=False),
+        "Blood pressure": om.str.contains(r"blood pressure", na=False),
+        "Skin temperature": om.str.contains(r"skin temp|temperature", na=False),
+        "Respiration": om.str.contains(r"resp", na=False),
+        "EMG": om.str.contains(r"emg", na=False),
+        "Motion/GPS": om.str.contains(r"gps|mocap", na=False),
+        "EOG": om.str.contains(r"eog|electrooculo", na=False),
+        "Wet Markers": om.str.contains(r"cortisol|Alpha Amylase|Blood Glucose|Cytokenes|Genetics|Wet markers", na=False),
     }
     print(f"\n  Modality prevalence (of {multimodal} multimodal studies):")
     for mod, mask in modalities.items():
@@ -687,13 +639,13 @@ def section_open_science(df: pd.DataFrame) -> None:
     da = df["Data Availability"]
     open_repo = da.eq(2.0).sum()
     on_request = da.eq(1.0).sum()
-    no_stmt = da.eq(0.0).sum()
-    not_coded = da.isna().sum()
+    not_avail = da.eq(0.0).sum()
+    no_stmt = da.isna().sum()
 
-    print(f"  Open repository (code 2): {pct(open_repo, total)}")
-    print(f"  Available on request (1): {pct(on_request, total)}")
-    print(f"  No statement (code 0):    {pct(no_stmt, total)}")
-    print(f"  Not coded / NaN:          {pct(not_coded, total)}")
+    print(f"  Open repository:          {pct(open_repo, total)}")
+    print(f"  Available on request:     {pct(on_request, total)}")
+    print(f"  Not available:            {pct(not_avail, total)}")
+    print(f"  No statement:             {pct(no_stmt, total)}")
 
 
 def section_publication_venue(df: pd.DataFrame) -> None:
@@ -763,7 +715,7 @@ def main(csv_path: Path, plots: bool = True) -> None:
 
     print("=" * 70)
     print("  NEURO-URBANISM CORPUS ANALYSIS")
-    print("  Gramann, Wieske, Estudillo & Sander (2026)")
+    print("  Gramann, Wieske, Estudillo López & Sander (2026)")
     print("=" * 70)
 
     section_corpus_overview(df)

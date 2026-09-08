@@ -13,15 +13,16 @@ import pandas as pd
 from matplotlib.collections import LineCollection
 from scipy import stats
 
+
 # Replicability labels used by reporting-rate plots.
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
     "online_filters": "Online filters applied",
     "num_channels": "Number of channels",
-    "electrode_type": "Electrode type",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
+    "offline_filters": "Offline filters applied",
 }
 
 mpl.rcParams["svg.fonttype"] = "path"
@@ -32,7 +33,6 @@ EXPORT_DIR = Path("exports")
 EXPORT_DIR.mkdir(exist_ok=True)
 
 FONT_STACK = [
-    "Neue Haas Grotesk Text Pro",
     "Neue Haas Grotesk Display Pro",
     "Neue Haas Grotesk",
     "Avenir Next",
@@ -614,25 +614,25 @@ def plot_analytic_domain(df: pd.DataFrame) -> None:
     total = len(df)
     domain_counts = pd.Series(
         {
-            "Frequency domain": df["EEG_features_cat"]
+            "Frequency domain": df["EEG_parameter_space"]
             .astype(str)
-            .str.contains(r"\b2\b", regex=True, na=False)
+            .str.contains(r"frequency",case=False, regex=True, na=False)
             .sum(),
-            "Time domain (ERP)": df["EEG_features_cat"]
+            "Time domain (ERP)": df["EEG_parameter_space"]
             .astype(str)
-            .str.contains(r"\b1\b", regex=True, na=False)
+            .str.contains(r"time",case=False, regex=True, na=False)
             .sum(),
-            "Functional connectivity": df["EEG_features_cat"]
+            "Functional connectivity": df["EEG_parameter_space"]
             .astype(str)
-            .str.contains(r"\b3\b", regex=True, na=False)
+            .str.contains(r"connectivity",case=False, regex=True, na=False)
             .sum(),
-            "Source localisation": df["EEG_features_cat"]
+            "ERSP": df["EEG_parameter_space"]
             .astype(str)
-            .str.contains(r"\b4\b", regex=True, na=False)
+            .str.contains(r"ERD", case=True, regex=True, na=False)
             .sum(),
-            "Proprietary output": df["EEG_features_cat"]
+            "Proprietary output": df["EEG_parameter_space"]
             .astype(str)
-            .str.contains(r"(?:9|propriat)", regex=True, na=False)
+            .str.contains(r"proprietary",case=False, regex=True, na=False)
             .sum(),
         }
     ).sort_values(ascending=True)
@@ -647,7 +647,7 @@ def plot_analytic_domain(df: pd.DataFrame) -> None:
         "Frequency domain": "#0B3C5D",
         "Time domain (ERP)": "#2A9D8F",
         "Functional connectivity": "#4CC9A6",
-        "Source localisation": "#6BA8B8",
+        "ERSP": "#6BA8B8",
         "Proprietary output": "#A8E6CF",
     }
 
@@ -751,18 +751,17 @@ def plot_multimodal_prevalence(df: pd.DataFrame) -> None:
 
     om = multimodal_df["other_measures"].astype(str).str.lower()
     modalities = {
-        "ECG / HRV": om.str.contains(r"ecg|hrv|heart rate", na=False),
-        "EDA": om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
-        "Eye-tracking": om.str.contains(r"eye.?track|eyetrack", na=False),
-        "Blood pressure": om.str.contains(r"blood.?press", na=False),
-        "Skin temperature": om.str.contains(r"skin.?temp|temperature", na=False),
-        "PPG": om.str.contains(r"\bppg\b|photopleth", na=False),
-        "Respiration": om.str.contains(r"resp|breath", na=False),
-        "EMG": om.str.contains(r"\bemg\b|electromyo", na=False),
-        "Motion / GPS": om.str.contains(r"\bgps\b|motion|accel|inertial", na=False),
-        "EOG": om.str.contains(r"\beog\b|electrooculo", na=False),
-        "Cortisol": om.str.contains(r"cortisol", na=False),
-    }
+            "ECG/PPG": om.str.contains(r"ecg|hrv|heart rate|PPG|BVP", na=False),
+            "EDA": om.str.contains(r"\beda\b|galvanic|gsr|skin conduct", na=False),
+            "Eye-tracking": om.str.contains(r"eye.?tracking|pupillometry", na=False),
+            "Blood pressure": om.str.contains(r"blood pressure", na=False),
+            "Skin temperature": om.str.contains(r"skin temp|temperature", na=False),
+            "Respiration": om.str.contains(r"resp|breath", na=False),
+            "EMG": om.str.contains(r"emg", na=False),
+            "Motion/GPS": om.str.contains(r"\bgps\b|mocap", na=False),
+            "EOG": om.str.contains(r"\beog\b|electrooculo", na=False),
+            "Wet Markers": om.str.contains(r"cortisol|Alpha Amylase|Blood Glucose|Cytokenes|Genetics|Wet markers", na=False),
+        }
     modality_counts = pd.Series(
         {name: mask.sum() for name, mask in modalities.items() if mask.sum() > 0}
     ).sort_values(ascending=True)
@@ -1539,7 +1538,6 @@ def plot_replicability_criteria(df: pd.DataFrame) -> None:
     required_rates: list[tuple[str, float]] = []
     for col, label in NECESSARY_COLS.items():
         required_rates.append((label, df[f"rep_{col}"].mean()))
-    required_rates.append(("Offline filters", df["rep_offline_filter"].mean()))
     required_rates.sort(key=lambda item: item[1])
 
     if not required_rates:

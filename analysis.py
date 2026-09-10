@@ -59,7 +59,6 @@ NECESSARY_COLS: dict[str, str] = {
     "online_filters": "Online filters applied",
     "offline_filters": "Offline filters applied",
     "num_channels": "Number of channels",
-    # "electrode_type": "Electrode type", -> decided not necessary for replicability
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
@@ -71,7 +70,7 @@ GOOD_COLS: dict[str, str] = {
     "EEG_system": "EEG system",
     "electrode_type": "Electrode type",
 }
-N_MAX = len(NECESSARY_COLS)  # 9
+N_MAX = len(NECESSARY_COLS)  # 7
 
 ABSENT: frozenset[str] = frozenset(
     {
@@ -86,20 +85,12 @@ ABSENT: frozenset[str] = frozenset(
         "0.0",
         "na / na",
         "na/na",
+        "na-na",
         "not reported",
         "not available",
         "not applicable",
     }
 )
-
-# --- EEG feature category codes ---
-FEAT_LABELS = {
-    "1": "Time domain (ERP)",
-    "2": "Frequency domain",
-    "3": "Connectivity",
-    "4": "Source localisation",
-    "9": "Proprietary",
-}
 
 # Western countries (for geographic analysis)
 WESTERN = {

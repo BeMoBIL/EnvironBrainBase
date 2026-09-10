@@ -214,7 +214,7 @@ def section_study_design(df: pd.DataFrame) -> None:
     print(f"    of which HMD/VR:  {pct(hmd, lab)}")
 
     print(f"  Real-world:         {pct(realworld, total)}")
-    print(f"  Combined lab+field: {pct(combined, total)}")
+    print(f"  Combined lab+real-world: {pct(combined, total)}")
 
     lab_and_mobile = (
         df["lab_realworld_binary"].eq(1)
@@ -549,10 +549,12 @@ def section_hardware(df: pd.DataFrame) -> None:
         f"  Median channels: {ch.median():.0f}  IQR: {ch.quantile(0.25):.0f}–{ch.quantile(0.75):.0f}  Mean: {ch.mean():.2f}  Range: {int(ch.min())}–{int(ch.max())}"
     )
     ch_valid = ch.dropna()
+    singlechan = (ch_valid == 1).sum()
     lt20 = (ch_valid < 20).sum()
     r2131 = ((ch_valid >= 21) & (ch_valid <= 31)).sum()
     r3263 = ((ch_valid >= 32) & (ch_valid <= 63)).sum()
     ge64 = (ch_valid >= 64).sum()
+    print(f"  Single channel:  {pct(singlechan, ch_n)}")
     print(f"  < 20 channels:  {pct(lt20, ch_n)}")
     print(f"  21–31 channels: {pct(r2131, ch_n)}")
     print(f"  32–63 channels: {pct(r3263, ch_n)}")

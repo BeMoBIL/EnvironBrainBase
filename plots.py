@@ -32,6 +32,9 @@ mpl.rcParams["ps.fonttype"] = 42
 EXPORT_DIR = Path("exports")
 EXPORT_DIR.mkdir(exist_ok=True)
 
+ADDITIONAL_FIGURES_DIR = EXPORT_DIR / "additional_figures"
+ADDITIONAL_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
 FONT_STACK = [
     "Neue Haas Grotesk Display Pro",
     "Neue Haas Grotesk",
@@ -43,12 +46,11 @@ FONT_STACK = [
 
 
 def export_figure(fig: plt.Figure, stem: str) -> None:
-    """Export a figure in SVG, PDF, and EPS formats."""
+    """Export a figure in SVG, PDF, and PNG formats."""
     fig.savefig(
         EXPORT_DIR / f"{stem}.svg", format="svg", bbox_inches="tight", facecolor="white"
     )
-    # fig.savefig(EXPORT_DIR / f"{stem}.pdf", format="pdf", bbox_inches="tight", facecolor="white")
-    # fig.savefig(EXPORT_DIR / f"{stem}.eps", format="eps", bbox_inches="tight", facecolor="white")
+    fig.savefig(EXPORT_DIR / f"{stem}.pdf", format="pdf", bbox_inches="tight", facecolor="white")
     fig.savefig(
         EXPORT_DIR / f"{stem}.png", format="png", bbox_inches="tight", facecolor="white"
     )
@@ -121,16 +123,16 @@ def plot_research_topic(df: pd.DataFrame) -> None:
         pctdistance=0.78,
         labeldistance=1.04,
         wedgeprops={"linewidth": 0.8, "edgecolor": "white"},
-        textprops={"color": "#2A2A2A", "fontsize": 5.5},
+        textprops={"color": "#2A2A2A", "fontsize": 8},
     )
     for wedge, t in zip(wedges, autotexts):
         r, g, b, _ = wedge.get_facecolor()
         luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
         t.set_color("white" if luminance < 0.52 else "#3A3A3A")
-        t.set_fontsize(5.5)
+        t.set_fontsize(8)
     ax1.set_title("Research Object Distribution", loc="left", pad=8, color="#1F1F1F")
     plt.tight_layout()
-    export_figure(fig1, "research_object_distribution")
+    export_figure(fig1, "fig3b_research_object_distribution")
     plt.close(fig1)
 
     bar_counts = broad_counts.sort_values()
@@ -176,7 +178,7 @@ def plot_research_topic(df: pd.DataFrame) -> None:
         labelcolor="#4A4A4A",
     )
     fig2.tight_layout()
-    export_figure(fig2, "fig3b_research_topic_distribution")
+    export_figure(fig2, "additional_figures/research_topic_distribution")
     plt.close(fig2)
 
 
@@ -223,7 +225,7 @@ def plot_motivation(df: pd.DataFrame) -> None:
         t.set_fontsize(8)
     ax.set_title("Motivation Distribution", loc="left", pad=8, color="#1F1F1F")
     plt.tight_layout()
-    export_figure(fig, "motivation_distribution")
+    export_figure(fig, "fig9_motivation_distribution")
     plt.close(fig)
 
 
@@ -233,7 +235,7 @@ def plot_study_design(df: pd.DataFrame) -> None:
         {
             "Lab (incl. HMD/VR)": df["lab_realworld_binary"].eq(1).sum(),
             "Real-world (mobile)": df["lab_realworld_binary"].eq(2).sum(),
-            "Combined lab+field": df["lab_realworld_binary"].eq(3).sum(),
+            "Combined lab+real-world": df["lab_realworld_binary"].eq(3).sum(),
         }
     )
 
@@ -325,22 +327,19 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
 
     count_table = pd.DataFrame(
         {
-            "Stationary lab": summary["stationary"],
+            "Stationary": summary["stationary"],
             "HMD/VR": summary["hmd"],
             "Mobile": summary["mobile"],
         }
     )
-    count_table["Other/NA"] = (
-        summary["total"] - (summary["stationary"] + summary["hmd"] + summary["mobile"])
-    ).clip(lower=0)
+    
 
     set_plot_style()
 
     colors = {
-        "Stationary lab": "#0B3C5D",
+        "Stationary": "#0B3C5D",
         "HMD/VR": "#2A9D8F",
-        "Mobile": "#A8E6CF",
-        "Other/NA": "#D7DEE3",
+        "Mobile": "#A8E6CF"
     }
 
     fig, ax = plt.subplots(figsize=(8.0, 5.0), dpi=300)
@@ -348,7 +347,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
     y_labels = count_table.index.tolist()
     totals = summary["total"].to_numpy()
 
-    for column in ["Stationary lab", "HMD/VR", "Mobile", "Other/NA"]:
+    for column in ["Stationary", "HMD/VR", "Mobile"]:
         values = count_table[column].to_numpy()
         bars = ax.barh(
             y_labels, values, left=left, color=colors[column], height=0.62, label=column
@@ -364,7 +363,7 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
                     va="center",
                     fontsize=8,
                     color="white"
-                    if column in {"Stationary lab", "HMD/VR"}
+                    if column in {"Stationary", "HMD/VR"}
                     else "#1F1F1F",
                 )
         left += values
@@ -395,9 +394,9 @@ def plot_paradigm_by_research_object(df: pd.DataFrame) -> None:
             color="#555555",
         )
 
-    ax.legend(frameon=False, loc="lower right", ncol=2)
+    ax.legend(frameon=False, loc="upper right", ncol=2)
     fig.tight_layout()
-    export_figure(fig, "fig3c_paradigm_by_research_object")
+    export_figure(fig, "additional_figures/paradigm_by_research_object")
     plt.close(fig)
 
 
@@ -413,7 +412,7 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
     design_map = {
         1: "Lab",
         2: "Real-world",
-        3: "Combined lab+field",
+        3: "Combined lab+real-world",
     }
 
     rows = []
@@ -425,9 +424,7 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
 
         design_code = pd.to_numeric(row.get("lab_realworld_binary"), errors="coerce")
         if pd.notna(design_code):
-            design_label = design_map.get(int(design_code), "Other/NA")
-        else:
-            design_label = "Other/NA"
+            design_label = design_map.get(int(design_code))
 
         for topic in mapped_topics:
             rows.append({"topic": topic, "design": design_label})
@@ -443,7 +440,7 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
         total=("design", "size"),
         lab=("design", lambda s: s.eq("Lab").sum()),
         real_world=("design", lambda s: s.eq("Real-world").sum()),
-        combined=("design", lambda s: s.eq("Combined lab+field").sum()),
+        combined=("design", lambda s: s.eq("Combined lab+real-world").sum()),
     )
 
     summary = summary.reindex(
@@ -461,21 +458,16 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
         {
             "Lab": summary["lab"],
             "Real-world": summary["real_world"],
-            "Combined lab+field": summary["combined"],
+            "Combined lab+real-world": summary["combined"],
         }
     )
-    count_table["Other/NA"] = (
-        summary["total"]
-        - (summary["lab"] + summary["real_world"] + summary["combined"])
-    ).clip(lower=0)
 
     set_plot_style()
 
     colors = {
         "Lab": "#0B3C5D",
         "Real-world": "#2A9D8F",
-        "Combined lab+field": "#A8E6CF",
-        "Other/NA": "#D7DEE3",
+        "Combined lab+real-world": "#A8E6CF",
     }
 
     fig, ax = plt.subplots(figsize=(8.0, 5.0), dpi=300)
@@ -483,7 +475,7 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
     y_labels = count_table.index.tolist()
     totals = summary["total"].to_numpy()
 
-    for column in ["Lab", "Real-world", "Combined lab+field", "Other/NA"]:
+    for column in ["Lab", "Real-world", "Combined lab+real-world"]:
         values = count_table[column].to_numpy()
         bars = ax.barh(
             y_labels, values, left=left, color=colors[column], height=0.62, label=column
@@ -526,9 +518,9 @@ def plot_study_design_by_research_object(df: pd.DataFrame) -> None:
             color="#555555",
         )
 
-    ax.legend(frameon=False, loc="lower right", ncol=2)
+    ax.legend(frameon=False, loc="upper right", ncol=2)
     fig.tight_layout()
-    export_figure(fig, "study_design_by_research_object")
+    export_figure(fig, "fig3c_study_design_by_research_object")
     plt.close(fig)
 
 
@@ -606,7 +598,7 @@ def plot_non_replicability_by_topic(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "fig7c_non_replicability_by_topic")
+    export_figure(fig, "additional_figures/non_replicability_by_topic")
     plt.close(fig)
 
 
@@ -1154,7 +1146,7 @@ def plot_mean_age(df: pd.DataFrame) -> None:
     ax.set_ylim(0, 120)
 
     fig.tight_layout()
-    export_figure(fig, "fig1b_mean_age_participants_distribution")
+    export_figure(fig, "fig2b_mean_age_participants_distribution")
     plt.close(fig)
 
 
@@ -1204,6 +1196,17 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
     for _, row in interval_table.iterrows():
         expanded_ages.extend(range(int(row["start"]), int(row["end"]) + 1))
 
+    set_plot_style()
+    plt.rcParams.update(
+        {
+            "axes.titlesize": 16,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 15,
+        }
+    )
+
     fig, ax = plt.subplots(figsize=(8.2, 4.8), dpi=300)
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
@@ -1238,7 +1241,7 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
         "<21",
         ha="center",
         va="top",
-        fontsize=7,
+        fontsize=13,
         color="#6d6d6d",
     )
     ax.text(
@@ -1247,7 +1250,7 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
         ">60",
         ha="center",
         va="top",
-        fontsize=7,
+        fontsize=13,
         color="#6d6d6d",
     )
 
@@ -1263,9 +1266,9 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
     ax.set_xlim(x_left, x_right)
     ax.set_ylim(-0.5, y_top)
     ax.set_yticks([])
-    ax.set_xlabel("Age", fontsize=8)
-    ax.set_ylabel("Reported age ranges", fontsize=8)
-    ax.set_title("Age ranges with distribution", fontsize=10, pad=10)
+    ax.set_xlabel("Age")
+    ax.set_ylabel("Reported age ranges")
+    ax.set_title("Age ranges with distribution", pad=10)
     ax.grid(axis="x", color="#d9d9d9", linewidth=0.6, alpha=0.7)
     ax.grid(axis="y", visible=False)
     ax.spines["left"].set_visible(False)
@@ -1278,7 +1281,7 @@ def plot_age_ranges(df: pd.DataFrame) -> None:
     ]
     ax.legend(handles=legend_handles, frameon=True, loc="upper right", fontsize=7)
     fig.tight_layout()
-    export_figure(fig, "fig1c_age_ranges_distribution")
+    export_figure(fig, "fig2c_age_ranges_distribution")
     plt.close(fig)
 
 
@@ -1329,7 +1332,7 @@ def plot_age_coverage(df: pd.DataFrame) -> None:
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    export_figure(fig, "age_coverage_curve")
+    export_figure(fig, "additional_figures/age_coverage_curve")
     plt.close(fig)
 
 
@@ -1475,7 +1478,7 @@ def plot_publication_year(df: pd.DataFrame) -> None:
 
     add_break_marks(ax_l, "right")
     fig.subplots_adjust(left=0.07, right=0.98, bottom=0.13, top=0.90, wspace=0.04)
-    export_figure(fig, "fig1a_publication_year_distribution")
+    export_figure(fig, "fig2a_publication_year_distribution")
     plt.close(fig)
 
 
@@ -1530,7 +1533,7 @@ def plot_sex_split(df: pd.DataFrame) -> None:
     ax.tick_params(axis="y", colors="#555555", length=0)
 
     fig.tight_layout()
-    export_figure(fig, "fig1d_sex_split_distribution")
+    export_figure(fig, "fig2d_sex_split_distribution")
     plt.close(fig)
 
 
@@ -1712,7 +1715,7 @@ def plot_replicability_by_venue(df: pd.DataFrame) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "fig7d_replicability_by_venue")
+    export_figure(fig, "additional_figures/replicability_by_venue")
     plt.close(fig)
 
 
@@ -1768,7 +1771,7 @@ def plot_top_journals(df: pd.DataFrame, top_n: int = 10) -> None:
         )
 
     fig.tight_layout()
-    export_figure(fig, "top_journals_distribution")
+    export_figure(fig, "additional_figures/top_journals_distribution")
     plt.close(fig)
 
 
@@ -1811,5 +1814,5 @@ def plot_journal_category_pie(df: pd.DataFrame) -> None:
 
     ax.set_title("Journal Category Distribution", loc="left", pad=8, color="#1F1F1F")
     fig.tight_layout()
-    export_figure(fig, "journal_category_distribution")
+    export_figure(fig, "additional_figures/journal_category_distribution")
     plt.close(fig)

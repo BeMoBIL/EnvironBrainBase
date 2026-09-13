@@ -22,6 +22,11 @@ def _load_rename_map() -> dict[str, str]:
         return json.load(f)
 
 
+def _normalize_header(s: str) -> str:
+    """Collapse CRLF/CR/LF differences."""
+    return s.replace("\r\n", "\n").replace("\r", "\n")
+
+
 _DROP_COLS: list[str] = ["comments_Analysis"]
 
 
@@ -30,7 +35,13 @@ def load_csv(path: Path | None = None) -> pd.DataFrame:
     p = path or _DATA_PATH
     df = pd.read_csv(p, dtype=str).fillna("")
     rename_map = _load_rename_map()
-    df = df.rename(columns=rename_map)
+    normalized_map = {_normalize_header(k): v for k, v in rename_map.items()}
+    actual_rename = {}
+    for col in df.columns:
+        target = normalized_map.get(_normalize_header(col))
+        if target is not None:
+            actual_rename[col] = target
+    df = df.rename(columns=actual_rename)
     df = df.dropna(how="all")
     return df.drop(columns=[c for c in _DROP_COLS if c in df.columns])
 

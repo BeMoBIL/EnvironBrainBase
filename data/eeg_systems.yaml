@@ -19,7 +19,7 @@ systems:
     channels: 64
     mobility_score: 3
     mobility_label: "Head-mounted EEG system, with additional equipment located in a rucksack or off-body"
-    link: https://www.ant-neuro.com/products/eego-sport
+    link: https://www.ant-neuro.com/products
     notes: "Wireless; amplifier clipped to cap, Bluetooth receiver in rucksack or off-body."
 
   - name: ANT mylab
@@ -36,7 +36,7 @@ systems:
     channels: 10
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.advancedbrainmonitoring.com/b-alert-x-series/
+    link: https://www.advancedbrainmonitoring.com/products/b-alert-x10
     notes: "Dry-electrode wireless headset; 10-channel montage."
 
   - name: B-Alert X24
@@ -44,7 +44,7 @@ systems:
     channels: 24
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.advancedbrainmonitoring.com/b-alert-x-series/
+    link: https://www.advancedbrainmonitoring.com/products/b-alert-x10
     notes: "Dry-electrode wireless headset; extended 24-channel montage."
 
   # ── EB Neuro ────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ systems:
     channels: 32
     mobility_score: 1
     mobility_label: "Waist-mounted (or back-mounted) with additional equipment located in a rucksack"
-    link: https://www.ebneuro.biz/en/neurology/ebneuro/bemicro
+    link: https://www.ebneuro.com/en/home
     notes: "Portable EEG with waist-mounted recorder."
 
   # ── BIOPAC ──────────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ systems:
     channels: 32
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.bitbrain.com/eeg-headsets
+    link: https://www.bitbrain.com/neurotechnology-products
     notes: "Wireless dry/semi-dry electrode headsets."
 
   - name: BitBrain Versatile 32
@@ -120,7 +120,7 @@ systems:
     channels: 32
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.bitbrain.com/eeg-headsets/versatile-32
+    link: https://www.bitbrain.com/neurotechnology-products/water-based-eeg/versatile-eeg
     notes: "Wireless 32-channel dry/semi-dry electrode headset."
 
   # ── Brain Products ──────────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ systems:
     channels: 32
     mobility_score: 1
     mobility_label: "Waist-mounted (or back-mounted) with additional equipment located in a rucksack"
-    link: https://www.brainproducts.com/solutions/move/
+    link: https://web.archive.org/web/20240810134459/https://www.brainproducts.com/solutions/move/
     notes: "Portable amplifier worn in a rucksack; cabled to EEG cap."
 
   - name: BrainProducts QuickAmp
@@ -161,7 +161,7 @@ systems:
     channels: 32
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.brainproducts.com/solutions/quickamp/
+    link: https://www.brainproducts.com/solutions/
     notes: "Compact wired amplifier."
 
   - name: BrainProducts V-Amp
@@ -169,7 +169,7 @@ systems:
     channels: 16
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.brainproducts.com/solutions/v-amp/
+    link: https://www.brainproducts.com/solutions/
     notes: "Compact 16-channel wired amplifier."
 
   # ── Bittium ─────────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ systems:
     channels: 32
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.bittium.com/medical/bittium-neuroline
+    link: https://www.bittium.com/medical/bittium-neurone/
     notes: "MRI-compatible EEG system; used inside scanner (fully stationary)."
 
   # ── Braintech ───────────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ systems:
     channels: 40
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://compumedicsneuroscan.com/nuamps/
+    link: https://compumedicsneuroscan.com/products/amplifiers/
     notes: "Compact wired amplifier; 40 channels."
 
   - name: Neuroscan Synamps
@@ -230,7 +230,7 @@ systems:
     channels: 256
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.egi.com/research-division/geodesic-eeg-systems/hcgsn/
+    link: https://www.magstim.com/research-eeg/
     notes: "High-density geodesic sensor net; up to 256 channels."
 
   - name: Geodesic Netamp
@@ -238,7 +238,7 @@ systems:
     channels: 256
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.egi.com/research-division/geodesic-eeg-systems/
+    link: https://www.magstim.com/research-eeg/
     notes: "High-density geodesic amplifier."
 
   # ── Emotiv ──────────────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ systems:
     channels: 14
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.emotiv.com/epoc/
+    link: https://www.emotiv.com/epoc-x/
     notes: "Consumer wireless headset; 14 saline-based electrodes."
 
   - name: Emotiv EPOC X
@@ -263,7 +263,7 @@ systems:
     channels: 14
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.emotiv.com/epocplus/
+    link: https://www.emotiv.com/epoc-x/
     notes: "Research-grade wireless headset; 14 channels."
 
   - name: Emotiv Epoc Flex
@@ -288,7 +288,7 @@ systems:
     channels: 20
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://www.neuroelectrics.com/solution/enobio/
+    link: https://www.neuroelectrics.com/products/research/enobio
     notes: "Wireless EEG / brain stimulation device; up to 32 channels."
 
   # ── g.tec ───────────────────────────────────────────────────────────────────
@@ -357,7 +357,7 @@ systems:
     channels: 32
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.micromed-usa.com/
+    link: https://www.micromeduk.com/eeg
     notes: "Clinical EEG system."
 
   # ── mindmedia ───────────────────────────────────────────────────────────────
@@ -366,7 +366,7 @@ systems:
     channels: 32
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.mindmedia.com/en/products/nexus-32/
+    link: https://us.mindmedia.com/products/nexus-32-qeeg-bio-neurofeedback-system
     notes: "Wired multi-channel physiological recorder."
 
   - name: Nexus-4
@@ -374,7 +374,7 @@ systems:
     channels: 4
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://www.mindmedia.com/en/products/nexus-4/
+    link: https://us.mindmedia.com/collections/sensors-cables/nexus-4
     notes: "Compact wired physiological recorder."
 
   # ── Nanjing Visheew ─────────────────────────────────────────────────────────
@@ -418,7 +418,7 @@ systems:
     channels: 1
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://neurosky.com/biosensors/eeg-sensor/products-from-neurosky/
+    link: https://mwm2.neurosky.com/
     notes: "Consumer single-channel dry EEG headband."
 
   - name: Neurosky Mindwave
@@ -426,7 +426,7 @@ systems:
     channels: 1
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://neurosky.com/biosensors/eeg-sensor/products-from-neurosky/
+    link: https://mwm2.neurosky.com/
     notes: "Consumer single-channel dry EEG headband."
 
   - name: Neurosky Mindwave 2
@@ -434,7 +434,7 @@ systems:
     channels: 1
     mobility_score: 4
     mobility_label: "Head-mounted and requires smartphone/tablet"
-    link: https://neurosky.com/biosensors/eeg-sensor/products-from-neurosky/
+    link: https://mwm2.neurosky.com/
     notes: "Updated version of the Mindwave headband."
 
   # ── OpenBCI ─────────────────────────────────────────────────────────────────
@@ -470,7 +470,7 @@ systems:
     channels: 5
     mobility_score: 0
     mobility_label: "All equipment off-body mounted and participant tethered via cabling to EEG acquisition equipment"
-    link: https://thoughttechnology.com/procomp5-infiniti/
+    link: https://thoughttechnology.com/procomp5-infiniti-system-w-biograph-infiniti-software-t7525/
     notes: "Multi-channel biofeedback system."
 
   # ── Wearable Sensing ────────────────────────────────────────────────────────

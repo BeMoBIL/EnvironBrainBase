@@ -148,6 +148,7 @@ def load_papers() -> pd.DataFrame:
         "mobile": "mobile",
         "mob": "mobile",
         "mobile & stat": "mobile",
+        "mix": "mix",
     }
     df["eeg_system_mobile_stationary"] = (
         df["eeg_system_mobile_stationary"]
@@ -192,7 +193,7 @@ def load_papers() -> pd.DataFrame:
 
 SAMPLE_LABELS = {"1": "Architecture", "2": "Urbanism", "3": "Nature"}
 LAB_LABELS = {"1": "Lab", "2": "Real-world", "3": "Mixed"}
-MOBILE_LABELS = {"stat": "Stationary", "mobile": "Mobile"}
+MOBILE_LABELS = {"stat": "Stationary", "mobile": "Mobile", "mix": "Mix"}
 
 
 # --------------------------------------------------------------------------
@@ -365,15 +366,15 @@ def main() -> None:
     # Tab 1: Data overview (table + per-paper detail)
     # ======================================================================
     with tab_overview:
-        c1, c2, c3, c4 = st.columns(4)
+        n_arch = int((f["sample_category"].str.contains("1", na=False)).sum())
+        n_urban = int((f["sample_category"].str.contains("2", na=False)).sum())
+        n_nature = int((f["sample_category"].str.contains("3", na=False)).sum())
+
+        c1, c2, c3 = st.columns(3)
         c1.metric("Papers shown", n_shown)
         c2.metric("Years", f"{year_range[0]}–{year_range[1]}")
         c3.metric(
-            "Architecture",
-            int((f["sample_category"].str.contains("1", na=False)).sum()),
-        )
-        c4.metric(
-            "Urbanism", int((f["sample_category"].str.contains("2", na=False)).sum())
+            "Architecture / Urbanism / Nature", f"{n_arch} / {n_urban} / {n_nature}"
         )
 
         st.divider()
@@ -959,7 +960,10 @@ table tr:hover td { background: #f0f4ff; }
         # ------------------------------------------------------------------
         st.subheader("Replicability")
         st.caption(
-            "Editor-assigned score: 1 = fully replicable, 2 = partially, 3 = not replicable from the paper alone. Lower is better."
+            "Computed score (0–100) based on how many required methodology fields "
+            "are reported for each paper (EEG acquisition, analysis, and reporting "
+            "details) — not an editor's subjective judgment. Higher = more complete "
+            "reporting = more replicable; 80–100 is scored ‘Replicable’."
         )
         if (
             "replicability_raw_num" in f.columns
@@ -973,7 +977,9 @@ table tr:hover td { background: #f0f4ff; }
                 .mark_bar()
                 .encode(
                     x=alt.X(
-                        "replicability_score:O", title="Replicability (1=best, 3=worst)"
+                        "replicability_score:O",
+                        title="Replicability score (0–100, higher = more replicable)",
+                        sort="ascending",
                     ),
                     y=alt.Y("count:Q", title="# of papers"),
                     tooltip=["replicability_score", "count"],

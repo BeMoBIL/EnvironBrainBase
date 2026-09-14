@@ -63,12 +63,14 @@ def main() -> None:
     st.divider()
 
     # ---------- Snapshot stats ----------
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Papers in database", s["n_papers"])
     if s["year_min"] and s["year_max"]:
         c2.metric("Year range", f"{s['year_min']}–{s['year_max']}")
-    c3.metric("Architecture / Urbanism", f"{s['n_arch']} / {s['n_urban']}")
-    c4.metric("Nature", s["n_nature"])
+    c3.metric(
+        "Architecture / Urbanism / Nature",
+        f"{s['n_arch']} / {s['n_urban']} / {s['n_nature']}",
+    )
 
     st.divider()
 

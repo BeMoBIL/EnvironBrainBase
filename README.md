@@ -4,7 +4,7 @@ A living, open-access database of EEG studies on architecture, urbanism, and
 nature: the substrate for systematic and ongoing review.
 
 - **Live app:** <https://EnvironBrainBase.streamlit.app/>
-- **Citation (latest snapshot):** [10.5281/zenodo.20023201](https://zenodo.org/records/20023201)
+- **Citation (latest snapshot):** [10.5281/zenodo.22753385](https://doi.org/10.5281/zenodo.22753385)
 - **Submit a paper:** through the [website form](https://EnvironBrainBase.streamlit.app/Submit_a_paper) or via a [PR](https://github.com/BeMoBIL/EnvironBrainBase/pulls).
 
 This database is a fork-style sibling of
@@ -19,7 +19,7 @@ Use the latest Zenodo version's DOI in publications; cite the live app for every
 links. Both are listed at the top of this README.
 
 If you publish a manuscript that uses a particular database snapshot, cite the
-_specific_ version (e.g. `v1.0`), not `main`.
+_specific_ version (e.g. `v1.0.0`), not `main`.
 
 ## Licensing
 

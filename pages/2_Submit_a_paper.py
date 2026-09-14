@@ -116,26 +116,35 @@ with st.form("submit_form", clear_on_submit=False):
         }.get(v, v),
     )
     eeg_system_mobile_stationary = c3.selectbox(
-        "EEG system mobility",
-        options=["", "stat", "mob"],
-        format_func=lambda v: {"": "—", "stat": "Stationary", "mob": "Mobile"}.get(
-            v, v
-        ),
+        "How is the EEG system used?",
+        options=["", "stat", "mob", "mix"],
+        format_func=lambda v: {
+            "": "—",
+            "stat": "Stationary",
+            "mob": "Mobile",
+            "mix": "Mix (both stationary and mobile use)",
+        }.get(v, v),
     )
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     num_participants = c1.text_input("N participants")
     age_range = c2.text_input("Age range (e.g. 18–35)")
-    sex_perc_male = c3.text_input("% male (e.g. 27%)")
+    mean_age_participants = c3.text_input("Mean age (e.g. 24.5)")
+    sex_perc_male = c4.text_input("% male (e.g. 27%)")
 
     st.subheader("EEG setup")
     c1, c2 = st.columns(2)
     eeg_system = c1.text_input("EEG system / model")
     eeg_company = c2.text_input("Manufacturer")
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     num_channels = c1.text_input("Channels")
     sampling_rate_hz = c2.text_input("Sampling rate (Hz)")
     reference_electrode = c3.text_input("Reference")
+    electrode_type = c4.selectbox(
+        "Kind of electrodes",
+        options=["", "wet electrodes", "dry electrodes", "semi-dry"],
+        format_func=lambda v: {"": "—"}.get(v, v),
+    )
 
     st.subheader("Stimulus / paradigm")
     input_modality_cat = st.text_input(
@@ -183,6 +192,7 @@ def _build_row(form: dict) -> dict:
         "sample_category": form["sample_category"],
         "num_participants": form["num_participants"],
         "age_range": form["age_range"],
+        "mean_age_participants": form["mean_age_participants"],
         "sex_perc_male": form["sex_perc_male"],
         "input_modality_cat": form["input_modality_cat"],
         "stimulus_material_visual": form["stimulus_material_visual"],
@@ -193,6 +203,7 @@ def _build_row(form: dict) -> dict:
         "sampling_rate_hz": form["sampling_rate_hz"],
         "num_channels": form["num_channels"],
         "reference_electrode": form["reference_electrode"],
+        "electrode_type": form["electrode_type"],
         "independent_variable": form["independent_variable"],
         "dependent_variable": form["dependent_variable"],
         "doi_link": form["doi_link"],
@@ -327,12 +338,14 @@ if submit:
         "eeg_system_mobile_stationary": eeg_system_mobile_stationary,
         "num_participants": num_participants,
         "age_range": age_range,
+        "mean_age_participants": mean_age_participants,
         "sex_perc_male": sex_perc_male,
         "eeg_system": eeg_system,
         "eeg_company": eeg_company,
         "num_channels": num_channels,
         "sampling_rate_hz": sampling_rate_hz,
         "reference_electrode": reference_electrode,
+        "electrode_type": electrode_type,
         "input_modality_cat": input_modality_cat,
         "stimulus_material_visual": stimulus_material_visual,
         "independent_variable": independent_variable,

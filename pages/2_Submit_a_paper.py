@@ -14,12 +14,20 @@ Secrets required (in Streamlit Cloud → Settings → Secrets, or
 .streamlit/secrets.toml locally):
 
     [github]
-    token = "ghp_xxx"          # fine-grained PAT with Contents:RW + Pull-Requests:RW
     repo  = "BeMoBIL/EnvironBrainBase"
     base_branch = "main"
+    # Preferred: GitHub App owned by the BeMoBIL org (PRs authored by the bot).
+    # The app needs Contents:RW + Pull-Requests:RW on this repo.
+    app_id = "123456"
+    installation_id = "12345678"
+    private_key = '''-----BEGIN RSA PRIVATE KEY-----
+    ...
+    -----END RSA PRIVATE KEY-----'''
+    # Fallback: fine-grained PAT with Contents:RW + Pull-Requests:RW
+    # token = "github_pat_xxx"
 
-If 'token' is missing the page still renders so reviewers can see the form,
-but the submit button is disabled and a banner explains why.
+If no credentials are configured the page still renders so reviewers can see
+the form, but the submit button is disabled and a banner explains why.
 """
 
 from __future__ import annotations
@@ -33,6 +41,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import jwt  # PyJWT
 import pandas as pd
 import requests
 import streamlit as st
@@ -48,15 +57,54 @@ st.caption(
 
 # ---------- Secrets / config ----------
 gh_cfg = st.secrets.get("github", {}) if hasattr(st, "secrets") else {}
-TOKEN = gh_cfg.get("token", "")
 REPO = gh_cfg.get("repo", "BeMoBIL/EnvironBrainBase")
 BASE_BRANCH = gh_cfg.get("base_branch", "main")
 DATA_FILE_IN_REPO = "data/papers.csv"
 
+
+@st.cache_data(ttl=3000, show_spinner=False)
+def _installation_token(app_id: str, installation_id: str, private_key: str) -> str:
+    """Exchange the GitHub App private key for a short-lived installation token.
+
+    Installation tokens are valid for 60 minutes; we cache for 50.
+    """
+    now = int(time.time())
+    app_jwt = jwt.encode(
+        {"iat": now - 60, "exp": now + 540, "iss": str(app_id)},
+        private_key,
+        algorithm="RS256",
+    )
+    r = requests.post(
+        f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+        headers={
+            "Authorization": f"Bearer {app_jwt}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        timeout=20,
+    )
+    r.raise_for_status()
+    return r.json()["token"]
+
+
+TOKEN = ""
+if gh_cfg.get("app_id"):
+    try:
+        TOKEN = _installation_token(
+            str(gh_cfg["app_id"]),
+            str(gh_cfg["installation_id"]),
+            gh_cfg["private_key"],
+        )
+    except Exception as e:  # pragma: no cover
+        st.error(f"Could not authenticate the GitHub App: {e}")
+else:
+    TOKEN = gh_cfg.get("token", "")
+
 if not TOKEN:
     st.warning(
-        "Submission is **disabled** in this deployment because no GitHub token is configured. "
-        'Maintainers: add `[github] token = "..."` to Streamlit secrets. '
+        "Submission is **disabled** in this deployment because no GitHub credentials are configured. "
+        "Maintainers: add the GitHub App settings (`app_id`, `installation_id`, `private_key`) "
+        "under `[github]` in Streamlit secrets. "
         "In the meantime you can submit by opening a GitHub Issue using the *Submit a paper* template."
     )
 

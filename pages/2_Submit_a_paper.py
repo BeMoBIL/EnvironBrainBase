@@ -35,12 +35,13 @@ from __future__ import annotations
 import base64
 import csv
 import io
+import json
 import re
 import time
 from datetime import datetime
 from pathlib import Path
 
-import jwt
+import jwt  # PyJWT
 import pandas as pd
 import requests
 import streamlit as st
@@ -94,7 +95,7 @@ if gh_cfg.get("app_id"):
             str(gh_cfg["installation_id"]),
             gh_cfg["private_key"],
         )
-    except Exception as e:  # noqa
+    except Exception as e:  # pragma: no cover
         st.error(f"Could not authenticate the GitHub App: {e}")
 else:
     TOKEN = gh_cfg.get("token", "")
@@ -115,6 +116,18 @@ def load_columns() -> list[str]:
 
 
 COLUMNS = load_columns()
+
+
+def _normalize_header(h: str) -> str:
+    return h.replace("\r\n", "\n").replace("\r", "\n")
+
+
+_RENAME_MAP = {
+    _normalize_header(k): v
+    for k, v in json.loads(
+        (DATA_PATH.parent / "schema_rename_map.json").read_text(encoding="utf-8")
+    ).items()
+}
 
 
 # ---------- Form ----------
@@ -164,26 +177,35 @@ with st.form("submit_form", clear_on_submit=False):
         }.get(v, v),
     )
     eeg_system_mobile_stationary = c3.selectbox(
-        "EEG system mobility",
-        options=["", "stat", "mob"],
-        format_func=lambda v: {"": "—", "stat": "Stationary", "mob": "Mobile"}.get(
-            v, v
-        ),
+        "How is the EEG system used?",
+        options=["", "stat", "mob", "mix"],
+        format_func=lambda v: {
+            "": "—",
+            "stat": "Stationary",
+            "mob": "Mobile",
+            "mix": "Mix (both stationary and mobile use)",
+        }.get(v, v),
     )
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     num_participants = c1.text_input("N participants")
     age_range = c2.text_input("Age range (e.g. 18–35)")
-    sex_perc_male = c3.text_input("% male (e.g. 27%)")
+    mean_age_participants = c3.text_input("Mean age (e.g. 24.5)")
+    sex_perc_male = c4.text_input("% male (e.g. 27%)")
 
     st.subheader("EEG setup")
     c1, c2 = st.columns(2)
     eeg_system = c1.text_input("EEG system / model")
     eeg_company = c2.text_input("Manufacturer")
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     num_channels = c1.text_input("Channels")
     sampling_rate_hz = c2.text_input("Sampling rate (Hz)")
     reference_electrode = c3.text_input("Reference")
+    electrode_type = c4.selectbox(
+        "Kind of electrodes",
+        options=["", "wet electrodes", "dry electrodes", "semi-dry"],
+        format_func=lambda v: {"": "—"}.get(v, v),
+    )
 
     st.subheader("Stimulus / paradigm")
     input_modality_cat = st.text_input(
@@ -219,7 +241,7 @@ def _slug(s: str, n: int = 40) -> str:
 
 def _build_row(form: dict) -> dict:
     """Map form fields into the canonical CSV schema. Empty for everything else."""
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.utcnow().strftime("%d.%m.%Y")  # matches existing rows
     row = {c: "" for c in COLUMNS}
     direct = {
         "authors_short": form["authors_short"],
@@ -231,6 +253,7 @@ def _build_row(form: dict) -> dict:
         "sample_category": form["sample_category"],
         "num_participants": form["num_participants"],
         "age_range": form["age_range"],
+        "mean_age_participants": form["mean_age_participants"],
         "sex_perc_male": form["sex_perc_male"],
         "input_modality_cat": form["input_modality_cat"],
         "stimulus_material_visual": form["stimulus_material_visual"],
@@ -241,15 +264,24 @@ def _build_row(form: dict) -> dict:
         "sampling_rate_hz": form["sampling_rate_hz"],
         "num_channels": form["num_channels"],
         "reference_electrode": form["reference_electrode"],
+        "electrode_type": form["electrode_type"],
         "independent_variable": form["independent_variable"],
         "dependent_variable": form["dependent_variable"],
         "doi_link": form["doi_link"],
         "added_date": today,
         "contributor": form["contributor"],
     }
+    # The form uses canonical names (see data/schema_rename_map.json), but the
+    # CSV header keeps the raw names. Map canonical -> raw before writing,
+    # otherwise fields like Authors/Year/Title are silently dropped.
+    canon_to_raw = {}
+    for raw in COLUMNS:
+        canon = _RENAME_MAP.get(_normalize_header(raw), raw)
+        canon_to_raw[canon] = raw
     for k, v in direct.items():
-        if k in row:
-            row[k] = (v or "").strip()
+        col = canon_to_raw.get(k, k)
+        if col in row:
+            row[col] = (v or "").strip()
     return row
 
 
@@ -281,17 +313,19 @@ def _fetch_csv() -> tuple[str, str]:
 
 
 def _append_row_to_csv(csv_text: str, row: dict) -> str:
-    """Read with csv.reader, append, re-emit with consistent quoting."""
-    reader = csv.DictReader(io.StringIO(csv_text))
-    rows = list(reader)
-    fieldnames = reader.fieldnames or list(row.keys())
-    rows.append({k: row.get(k, "") for k in fieldnames})
+    """Append one row without touching existing lines.
+
+    Existing text is kept byte-for-byte so the PR diff shows only the new row.
+    The new row uses the file's own line ending (LF in the repo).
+    """
+    eol = "\r\n" if "\r\n" in csv_text else "\n"
+    header = next(csv.reader(io.StringIO(csv_text)))
     out = io.StringIO()
-    w = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
-    w.writeheader()
-    for r in rows:
-        w.writerow(r)
-    return out.getvalue()
+    w = csv.writer(out, quoting=csv.QUOTE_MINIMAL, lineterminator=eol)
+    w.writerow([row.get(h, "") for h in header])
+    if csv_text and not csv_text.endswith(("\n", "\r")):
+        csv_text += eol
+    return csv_text + out.getvalue()
 
 
 def _open_pr(form: dict, row: dict) -> dict:
@@ -375,12 +409,14 @@ if submit:
         "eeg_system_mobile_stationary": eeg_system_mobile_stationary,
         "num_participants": num_participants,
         "age_range": age_range,
+        "mean_age_participants": mean_age_participants,
         "sex_perc_male": sex_perc_male,
         "eeg_system": eeg_system,
         "eeg_company": eeg_company,
         "num_channels": num_channels,
         "sampling_rate_hz": sampling_rate_hz,
         "reference_electrode": reference_electrode,
+        "electrode_type": electrode_type,
         "input_modality_cat": input_modality_cat,
         "stimulus_material_visual": stimulus_material_visual,
         "independent_variable": independent_variable,
@@ -400,7 +436,7 @@ if submit:
             st.error(
                 f"GitHub API error: {e.response.status_code} — {e.response.text[:300]}"
             )
-        except Exception as e:  # noqa
+        except Exception as e:  # pragma: no cover
             st.error(f"Unexpected error: {e}")
         else:
             st.success("Submitted! Your paper is now an open Pull Request.")

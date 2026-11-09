@@ -1,0 +1,2 @@
+# Keep CSVs LF in the repo so diffs show only real changes
+*.csv text eol=lf

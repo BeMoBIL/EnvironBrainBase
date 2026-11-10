@@ -14,12 +14,20 @@ Secrets required (in Streamlit Cloud → Settings → Secrets, or
 .streamlit/secrets.toml locally):
 
     [github]
-    token = "ghp_xxx"          # fine-grained PAT with Contents:RW + Pull-Requests:RW
     repo  = "BeMoBIL/EnvironBrainBase"
     base_branch = "main"
+    # Preferred: GitHub App owned by the BeMoBIL org (PRs authored by the bot).
+    # The app needs Contents:RW + Pull-Requests:RW on this repo.
+    app_id = "123456"
+    installation_id = "12345678"
+    private_key = '''-----BEGIN RSA PRIVATE KEY-----
+    ...
+    -----END RSA PRIVATE KEY-----'''
+    # Fallback: fine-grained PAT with Contents:RW + Pull-Requests:RW
+    # token = "github_pat_xxx"
 
-If 'token' is missing the page still renders so reviewers can see the form,
-but the submit button is disabled and a banner explains why.
+If no credentials are configured the page still renders so reviewers can see
+the form, but the submit button is disabled and a banner explains why.
 """
 
 from __future__ import annotations
@@ -27,11 +35,13 @@ from __future__ import annotations
 import base64
 import csv
 import io
+import json
 import re
 import time
 from datetime import datetime
 from pathlib import Path
 
+import jwt  # PyJWT
 import pandas as pd
 import requests
 import streamlit as st
@@ -47,15 +57,54 @@ st.caption(
 
 # ---------- Secrets / config ----------
 gh_cfg = st.secrets.get("github", {}) if hasattr(st, "secrets") else {}
-TOKEN = gh_cfg.get("token", "")
 REPO = gh_cfg.get("repo", "BeMoBIL/EnvironBrainBase")
 BASE_BRANCH = gh_cfg.get("base_branch", "main")
 DATA_FILE_IN_REPO = "data/papers.csv"
 
+
+@st.cache_data(ttl=3000, show_spinner=False)
+def _installation_token(app_id: str, installation_id: str, private_key: str) -> str:
+    """Exchange the GitHub App private key for a short-lived installation token.
+
+    Installation tokens are valid for 60 minutes; we cache for 50.
+    """
+    now = int(time.time())
+    app_jwt = jwt.encode(
+        {"iat": now - 60, "exp": now + 540, "iss": str(app_id)},
+        private_key,
+        algorithm="RS256",
+    )
+    r = requests.post(
+        f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+        headers={
+            "Authorization": f"Bearer {app_jwt}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        timeout=20,
+    )
+    r.raise_for_status()
+    return r.json()["token"]
+
+
+TOKEN = ""
+if gh_cfg.get("app_id"):
+    try:
+        TOKEN = _installation_token(
+            str(gh_cfg["app_id"]),
+            str(gh_cfg["installation_id"]),
+            gh_cfg["private_key"],
+        )
+    except Exception as e:  # pragma: no cover
+        st.error(f"Could not authenticate the GitHub App: {e}")
+else:
+    TOKEN = gh_cfg.get("token", "")
+
 if not TOKEN:
     st.warning(
-        "Submission is **disabled** in this deployment because no GitHub token is configured. "
-        'Maintainers: add `[github] token = "..."` to Streamlit secrets. '
+        "Submission is **disabled** in this deployment because no GitHub credentials are configured. "
+        "Maintainers: add the GitHub App settings (`app_id`, `installation_id`, `private_key`) "
+        "under `[github]` in Streamlit secrets. "
         "In the meantime you can submit by opening a GitHub Issue using the *Submit a paper* template."
     )
 
@@ -563,6 +612,17 @@ VENUE_TO_DOMAIN = {
 }
 
 
+def _normalize_header(h: str) -> str:
+    return h.replace("\r\n", "\n").replace("\r", "\n")
+
+
+_RENAME_MAP = {
+    _normalize_header(k): v
+    for k, v in json.loads(
+        (DATA_PATH.parent / "schema_rename_map.json").read_text(encoding="utf-8")
+    ).items()
+}
+
 # ---------- Form ----------
 st.markdown(
     "Required fields are marked. Anything you don't know, leave blank: a "
@@ -786,7 +846,7 @@ with st.form("submit_form", clear_on_submit=False):
     )
     c1, c2 = st.columns(2)
     title = c1.text_input("Title", help="Required")
-    venue = c2.selectbox("Journal / venue (Abbreviation; e.g. *J Env Psychol*)", options=VENUE_OPTIONS, help="Required")
+    journal = c2.selectbox("Journal / venue (Abbreviation; e.g. *J Env Psychol*)", options=VENUE_OPTIONS, help="Required")
     authors_full = st.text_area(
         "Full author list (with first names; e.g., *John Doe, Jane Smith*)", height=80
     )
@@ -1081,13 +1141,13 @@ def _slug(s: str, n: int = 40) -> str:
 
 def _build_row(form: dict) -> dict:
     """Map form fields into the canonical CSV schema. Empty for everything else."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.utcnow().strftime("%d.%m.%Y")  # matches existing rows
     row = {c: "" for c in COLUMNS}
     direct = {
         "authors_short": form["authors_short"],
         "year": form["year"],
         "country": form["country"],
-        "journal": form["venue"],
+        "journal": form["journal"],
         "publisher": form["publisher"],
         "authors_full": form["authors_full"],
         "title": form["title"],
@@ -1118,9 +1178,17 @@ def _build_row(form: dict) -> dict:
         "added_date": today,
         "contributor": form["contributor"],
     }
+     # The form uses canonical names (see data/schema_rename_map.json), but the
+    # CSV header keeps the raw names. Map canonical -> raw before writing,
+    # otherwise fields like Authors/Year/Title are silently dropped.
+    canon_to_raw = {}
+    for raw in COLUMNS:
+        canon = _RENAME_MAP.get(_normalize_header(raw), raw)
+        canon_to_raw[canon] = raw
     for k, v in direct.items():
-        if k in row:
-            row[k] = (v or "").strip()
+        col = canon_to_raw.get(k, k)
+        if col in row:
+            row[col] = (v or "").strip()
     return row
 
 
@@ -1152,17 +1220,19 @@ def _fetch_csv() -> tuple[str, str]:
 
 
 def _append_row_to_csv(csv_text: str, row: dict) -> str:
-    """Read with csv.reader, append, re-emit with consistent quoting."""
-    reader = csv.DictReader(io.StringIO(csv_text))
-    rows = list(reader)
-    fieldnames = reader.fieldnames or list(row.keys())
-    rows.append({k: row.get(k, "") for k in fieldnames})
+    """Append one row without touching existing lines.
+
+    Existing text is kept byte-for-byte so the PR diff shows only the new row.
+    The new row uses the file's own line ending (LF in the repo).
+    """
+    eol = "\r\n" if "\r\n" in csv_text else "\n"
+    header = next(csv.reader(io.StringIO(csv_text)))
     out = io.StringIO()
-    w = csv.DictWriter(out, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
-    w.writeheader()
-    for r in rows:
-        w.writerow(r)
-    return out.getvalue()
+    w = csv.writer(out, quoting=csv.QUOTE_MINIMAL, lineterminator=eol)
+    w.writerow([row.get(h, "") for h in header])
+    if csv_text and not csv_text.endswith(("\n", "\r")):
+        csv_text += eol
+    return csv_text + out.getvalue()
 
 
 def _open_pr(form: dict, row: dict) -> dict:
@@ -1235,15 +1305,15 @@ def _open_pr(form: dict, row: dict) -> dict:
 if submit:
     if eeg_system in EEG_SYSTEM_TO_BRAND:
         eeg_company = EEG_SYSTEM_TO_BRAND[eeg_system]
-    if venue in VENUE_TO_PUBLISHER:
-        publisher = VENUE_TO_PUBLISHER[venue]
-        venue_domain = VENUE_TO_DOMAIN[venue]
+    if journal in VENUE_TO_PUBLISHER:
+        publisher = VENUE_TO_PUBLISHER[journal]
+        venue_domain = VENUE_TO_DOMAIN[journal]
     form = {
         "authors_short": authors_short,
         "year": year,
         "title": title,
         "country": country,
-        "journal": venue,
+        "journal": journal,
         "data_availability": data_availability,
         "preregistration": preregistration,
         "publisher": publisher,

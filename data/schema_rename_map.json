@@ -1,6 +1,7 @@
 {
   "Authors": "authors_short",
   "Year": "year",
+  "Country first Author Affiliation": "country",
   "Journal": "journal",
   "publisher": "publisher",
   "Full author information (please provide full first names)": "authors_full",
@@ -44,8 +45,9 @@
   "other_measures": "other_measures",
   "analysis_Approach": "analysis_approach",
   "ica_used": "ica_used",
-  "Data Availability": "data_availability",
   "DOI_ /_Link": "doi_link",
+  "Pre-Reg_Open-Data": "preregistration",
+  "Data Availability": "data_availability",
   "added date": "added_date",
   "Contributor": "contributor",
   "edited date": "edited_date",

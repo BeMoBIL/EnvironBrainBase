@@ -16,7 +16,7 @@ from scipy import stats
 # Replicability labels used by reporting-rate plots.
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
-    "online_filters": "Online filters applied",
+    "online_filters": "Hardware filter settings",
     "num_channels": "Number of channels",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",

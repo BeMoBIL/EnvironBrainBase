@@ -61,7 +61,7 @@ from plots import (
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
     # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
-    "online_filters": "Online filters applied",
+    "online_filters": "Hardware filter settings",
     "num_channels": "Number of channels",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",

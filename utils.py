@@ -46,7 +46,7 @@ def load_csv(path: Path | None = None) -> pd.DataFrame:
     return df.drop(columns=[c for c in _DROP_COLS if c in df.columns])
 
 
-def load_eeg_systems() -> "dict[str, dict[str, Any]]":
+def load_eeg_systems() -> dict[str, dict[str, Any]]:
     """Load the canonical EEG system lookup from data/eeg_systems.yaml.
 
     Returns a dict keyed by normalised system name (lowercase, stripped).
@@ -56,7 +56,7 @@ def load_eeg_systems() -> "dict[str, dict[str, Any]]":
     return {entry["name"].strip().lower(): entry for entry in data.get("systems", [])}
 
 
-def lookup_eeg_system(system_name: str, systems=None) -> "dict[str, Any]":
+def lookup_eeg_system(system_name: str, systems=None) -> dict[str, Any]:
     """Return canonical info for system_name, or an empty dict if not found."""
     if systems is None:
         systems = load_eeg_systems()

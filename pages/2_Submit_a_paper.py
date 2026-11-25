@@ -846,7 +846,11 @@ with st.form("submit_form", clear_on_submit=False):
     )
     c1, c2 = st.columns(2)
     title = c1.text_input("Title", help="Required")
-    journal = c2.selectbox("Journal / venue (Abbreviation; e.g. *J Env Psychol*)", options=VENUE_OPTIONS, help="Required")
+    journal = c2.selectbox(
+        "Journal / venue (Abbreviation; e.g. *J Env Psychol*)",
+        options=VENUE_OPTIONS,
+        help="Required",
+    )
     authors_full = st.text_area(
         "Full author list (with first names; e.g., *John Doe, Jane Smith*)", height=80
     )
@@ -854,7 +858,7 @@ with st.form("submit_form", clear_on_submit=False):
     c1, c2 = st.columns(2)
     data_availability = c1.selectbox(
         "Data availability",
-        options=["","NA", "2", "1", "0"],
+        options=["", "NA", "2", "1", "0"],
         format_func=lambda v: {
             "": "—",
             "NA": "No statement",
@@ -1178,7 +1182,7 @@ def _build_row(form: dict) -> dict:
         "added_date": today,
         "contributor": form["contributor"],
     }
-     # The form uses canonical names (see data/schema_rename_map.json), but the
+    # The form uses canonical names (see data/schema_rename_map.json), but the
     # CSV header keeps the raw names. Map canonical -> raw before writing,
     # otherwise fields like Authors/Year/Title are silently dropped.
     canon_to_raw = {}

@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import load_csv, load_eeg_systems, lookup_eeg_system  # noqa: E402
+from utils import load_csv, load_eeg_systems, lookup_eeg_system
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 
@@ -94,7 +94,7 @@ def _is_present(val: object) -> bool:
     return str(val).strip().lower() not in _ABSENT
 
 
-def _offline_filter_present(row: "pd.Series") -> bool:
+def _offline_filter_present(row: pd.Series) -> bool:
     """Offline filter criterion: offline_filters present OR both HP+LP cutoffs present."""
     if _is_present(row.get("offline_filters", "")):
         return True
@@ -103,7 +103,7 @@ def _offline_filter_present(row: "pd.Series") -> bool:
     )
 
 
-def _score_row(row: "pd.Series") -> tuple[float, str]:
+def _score_row(row: pd.Series) -> tuple[float, str]:
     n = sum(_is_present(row.get(c, "")) for c in _NECESSARY_COLS)
     n += int(_offline_filter_present(row))  # add the offline-filter either/or criterion
     g = sum(_is_present(row.get(c, "")) for c in _GOOD_COLS)
@@ -312,9 +312,11 @@ def main() -> None:
 
     if sample_pick:
         mask = f["sample_category"].apply(
-            lambda s: any(p in [x.strip() for x in s.split(",")] for p in sample_pick)
-            if s
-            else False
+            lambda s: (
+                any(p in [x.strip() for x in s.split(",")] for p in sample_pick)
+                if s
+                else False
+            )
         )
         f = f[mask]
     if lab_pick:
@@ -383,6 +385,7 @@ def main() -> None:
         # HTML table with inline EEG system hover tooltips
         # ------------------------------------------------------------------
         import html as _html
+
         import streamlit.components.v1 as _components
 
         _SCORE_COLOR = {

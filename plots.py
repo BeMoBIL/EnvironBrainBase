@@ -18,7 +18,6 @@ NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
     "online_filters": "Online filters applied",
     "num_channels": "Number of channels",
-    "electrode_type": "Electrode type",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",

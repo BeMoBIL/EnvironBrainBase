@@ -59,7 +59,6 @@ NECESSARY_COLS: dict[str, str] = {
     # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
     "online_filters": "Online filters applied",
     "num_channels": "Number of channels",
-    "electrode_type": "Electrode type",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
     "artifact_rejection": "Artifact rejection",
@@ -76,7 +75,7 @@ GOOD_COLS: dict[str, str] = {
     "EEG_company": "EEG company",
     "EEG_system": "EEG system",
 }
-N_MAX = len(NECESSARY_COLS) + 1  # 9 (8 simple + 1 offline either/or)
+N_MAX = len(NECESSARY_COLS) + 1  # 7 (6 simple + 1 offline either/or)
 
 ABSENT: frozenset[str] = frozenset(
     {

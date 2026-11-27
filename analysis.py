@@ -23,6 +23,7 @@ import pandas as pd
 from scipy.stats import chi2_contingency
 
 from plots import (
+    EXPORT_DIR,
     plot_age_coverage,
     plot_age_ranges,
     plot_analytic_domain,
@@ -41,6 +42,9 @@ from plots import (
     plot_replicability_criteria,
     plot_replicability_summary,
     plot_research_topic,
+    plot_sensitivity_loo,
+    plot_sensitivity_subgroups,
+    plot_sensitivity_threshold,
     plot_sex_split,
     plot_study_design,
     plot_study_design_by_research_object,
@@ -57,7 +61,7 @@ from plots import (
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
     # "filters_amp":         "Hardware filter settings", -> redundant with online_filters
-    "online_filters": "Online filters applied",
+    "online_filters": "Hardware filter settings",
     "num_channels": "Number of channels",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
@@ -292,7 +296,7 @@ def section_study_design(df: pd.DataFrame) -> None:
         .value_counts(dropna=False)
     )
     for val, cnt in mob.items():
-        print(f"    {str(val):<30} {pct(cnt, total)}")
+        print(f"    {val!s:<30} {pct(cnt, total)}")
 
 
 def section_demographics(df: pd.DataFrame) -> None:
@@ -454,12 +458,12 @@ def section_research_focus(df: pd.DataFrame) -> None:
 
     print("  Research Topic:")
     for topic, cnt in df["Research Topic"].value_counts(dropna=False).head(8).items():
-        print(f"    {str(topic):<55} {pct(cnt, total)}")
+        print(f"    {topic!s:<55} {pct(cnt, total)}")
 
     print("\n  Motivation:")
     mot = df["Motivation"].value_counts(dropna=False)
     for val, cnt in mot.items():
-        print(f"    {str(val):<45} {pct(cnt, total)}")
+        print(f"    {val!s:<45} {pct(cnt, total)}")
 
     # Grouped motivation
     mot_lower = df["Motivation"].str.lower().str.strip().fillna("")
@@ -657,7 +661,7 @@ def section_geography(df: pd.DataFrame) -> None:
     country = df["Country first Author Affiliation"].str.lower().str.strip()
     print("  Top 15 countries:")
     for c, cnt in country.value_counts().head(15).items():
-        print(f"    {str(c):<25} {pct(cnt, total)}")
+        print(f"    {c!s:<25} {pct(cnt, total)}")
 
     # Western vs non-Western
     western_n = country.isin(WESTERN).sum()
@@ -739,13 +743,186 @@ def section_publication_venue(df: pd.DataFrame) -> None:
         journal_rows = df[df["Journal"] == j]
         venue_values = journal_rows["venue_domain"].dropna().astype(str).str.strip()
         v = venue_values.mode().iat[0] if not venue_values.empty else "NA"
-        print(f"  {str(j):<55} {cnt:>3}  [{v[:25]}]")
+        print(f"  {j!s:<55} {cnt:>3}  [{v[:25]}]")
 
     if "replicable" in df.columns:
         sep("  Journals with replicable papers")
         rep_journals = df[df["replicable"]]["Journal"].value_counts()
         for j, cnt in rep_journals.items():
-            print(f"  {str(j):<55} {cnt}")
+            print(f"  {j!s:<55} {cnt}")
+
+
+# %%
+# =============================================================================
+# 12. SENSITIVITY ANALYSIS (leave-one-criterion-out, graded threshold)
+# =============================================================================
+
+# Criterion flags produced by score_row(), with display labels.
+CRITERION_LABELS: dict[str, str] = {
+    **{f"rep_{col}": label for col, label in NECESSARY_COLS.items()},
+    "rep_offline_filter": "Offline filters",
+}
+
+TOPIC_LABELS: list[str] = [
+    "Nature & restorative environments",
+    "Architectural & built interior spaces",
+    "Urban outdoor environments",
+    "Multisensory & environmental stimuli",
+    "Methods & technology",
+]
+
+LAB_REALWORLD_LABELS: dict[int, str] = {
+    1: "Laboratory",
+    2: "Real world",
+    3: "Combined lab + real world",
+}
+
+
+def _completeness_rows(
+    df: pd.DataFrame, complete: pd.Series, scenario: str
+) -> list[dict]:
+    """Reporting-complete counts overall and per subgroup for one scenario.
+
+    Covers every completeness-based result reported in the manuscript:
+    overall, publication venue, research topic (multi-coded papers count in
+    each of their topics), first-author country (top 8), system grade, and
+    study design (lab / real world / combined).
+    """
+    rows: list[dict] = []
+
+    def add(metric: str, group: str, mask: pd.Series) -> None:
+        n = int(mask.sum())
+        if n == 0:
+            return
+        k = int((complete & mask).sum())
+        rows.append(
+            {
+                "scenario": scenario,
+                "metric": metric,
+                "group": group,
+                "n_complete": k,
+                "n": n,
+                "pct_complete": 100 * k / n,
+                "pct_incomplete": 100 * (n - k) / n,
+            }
+        )
+
+    add("overall", "All studies", pd.Series(True, index=df.index))
+
+    venue = df["venue_domain"]
+    for v in venue.value_counts().index:
+        add("venue_domain", str(v), venue.eq(v))
+
+    topics = df["Research Topic"].apply(parse_multicoded)
+    for t in TOPIC_LABELS:
+        add("research_topic", t, topics.apply(lambda ts, t=t: t in ts))
+
+    country = df["Country first Author Affiliation"].str.lower().str.strip()
+    country_names = {"usa": "USA", "uk": "UK"}
+    for c in country.value_counts().head(8).index:
+        add("country", country_names.get(str(c), str(c).title()), country.eq(c))
+
+    grade = df["System grade (medical vs consumer)"].astype(str).str.strip().str.lower()
+    for g in ("consumer", "medical"):
+        add("system_grade", f"{g.capitalize()} grade", grade.eq(g))
+
+    design = df["lab_realworld_binary"]
+    for code, label in LAB_REALWORLD_LABELS.items():
+        add("study_design", label, design.eq(code))
+
+    return rows
+
+
+def section_sensitivity(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Leave-one-criterion-out sensitivity analysis and graded threshold.
+
+    Requires the rep_* columns added by section_replicability().
+    Returns (long table, per-metric range summary, threshold table) and writes
+    all three to ./exports/ as CSV.
+    """
+    total = len(df)
+    crit_cols = list(CRITERION_LABELS)
+    n_crit = len(crit_cols)
+    met = df[crit_cols].astype(bool)
+
+    headline = f"All {n_crit} criteria"
+    scenarios: dict[str, list[str]] = {headline: crit_cols}
+    for col in crit_cols:
+        scenarios[f"Without {CRITERION_LABELS[col]}"] = [
+            c for c in crit_cols if c != col
+        ]
+
+    rows: list[dict] = []
+    for name, cols in scenarios.items():
+        complete = met[cols].all(axis=1)
+        rows.extend(_completeness_rows(df, complete, name))
+    loo = pd.DataFrame(rows)
+
+    sep("12. SENSITIVITY ANALYSIS (leave-one-criterion-out)")
+    overall = loo[loo["metric"].eq("overall")]
+    for _, r in overall.iterrows():
+        print(
+            f"  {r['scenario']:<40} {int(r['n_complete']):>4} / {int(r['n'])}"
+            f"  ({r['pct_complete']:.1f}% complete, {r['pct_incomplete']:.1f}% incomplete)"
+        )
+
+    # Per metric/group: headline value and range across the LOO scenarios.
+    summary_rows: list[dict] = []
+    for (metric, group), sub in loo.groupby(["metric", "group"], sort=False):
+        head = sub[sub["scenario"].eq(headline)].iloc[0]
+        loo_sub = sub[sub["scenario"].ne(headline)]
+        lo = loo_sub.loc[loo_sub["pct_complete"].idxmin()]
+        hi = loo_sub.loc[loo_sub["pct_complete"].idxmax()]
+        summary_rows.append(
+            {
+                "metric": metric,
+                "group": group,
+                "n": int(head["n"]),
+                "headline_n_complete": int(head["n_complete"]),
+                "headline_pct_complete": head["pct_complete"],
+                "loo_min_pct_complete": lo["pct_complete"],
+                "loo_min_scenario": lo["scenario"],
+                "loo_max_pct_complete": hi["pct_complete"],
+                "loo_max_n_complete": int(hi["n_complete"]),
+                "loo_max_scenario": hi["scenario"],
+            }
+        )
+    summary = pd.DataFrame(summary_rows)
+
+    sep("  Range across leave-one-out scenarios (reporting-complete %)")
+    for metric, sub in summary.groupby("metric", sort=False):
+        print(f"  [{metric}]")
+        for _, r in sub.iterrows():
+            print(
+                f"    {str(r['group'])[:42]:<42} n={r['n']:>3}  "
+                f"headline {r['headline_pct_complete']:5.1f}%  "
+                f"LOO range {r['loo_min_pct_complete']:5.1f}–{r['loo_max_pct_complete']:5.1f}%  "
+                f"(max: {r['loo_max_scenario']})"
+            )
+
+    # Graded threshold: at least k of the criteria met.
+    sep(f"  Graded threshold (at least k of {n_crit} criteria met)")
+    n_met = met.sum(axis=1)
+    thr_rows: list[dict] = []
+    for k in range(n_crit, -1, -1):
+        m = int((n_met >= k).sum())
+        thr_rows.append(
+            {"min_criteria_met": k, "n_studies": m, "pct_studies": 100 * m / total}
+        )
+        print(f"  >= {k}/{n_crit}: {pct(m, total)}")
+    threshold = pd.DataFrame(thr_rows)
+
+    loo.to_csv(EXPORT_DIR / "sensitivity_loo_long.csv", index=False)
+    summary.to_csv(EXPORT_DIR / "sensitivity_loo_summary.csv", index=False)
+    threshold.to_csv(EXPORT_DIR / "sensitivity_threshold.csv", index=False)
+    print(
+        "\n  Saved tables: sensitivity_loo_long.csv, sensitivity_loo_summary.csv, "
+        "sensitivity_threshold.csv"
+    )
+
+    return loo, summary, threshold
 
 
 # %%
@@ -809,6 +986,11 @@ def main(csv_path: Path, plots: bool = True) -> None:
         plot_top_journals(df)
         plot_journal_category_pie(df)
         plot_replicability_by_venue(df)
+    loo, loo_summary, threshold = section_sensitivity(df)
+    if plots:
+        plot_sensitivity_loo(loo)
+        plot_sensitivity_subgroups(loo_summary)
+        plot_sensitivity_threshold(threshold)
 
     print("\n" + "=" * 70)
     print("  DONE")

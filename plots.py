@@ -16,7 +16,7 @@ from scipy import stats
 # Replicability labels used by reporting-rate plots.
 NECESSARY_COLS: dict[str, str] = {
     "SR_in_Hz": "Sample rate",
-    "online_filters": "Online filters applied",
+    "online_filters": "Hardware filter settings",
     "num_channels": "Number of channels",
     "electrode_locations": "Electrode locations",
     "reference": "Reference scheme",
@@ -111,7 +111,7 @@ def plot_research_topic(df: pd.DataFrame) -> None:
     pie_colors = [color_for_category(cat) for cat in pie_counts.index]
 
     fig1, ax1 = plt.subplots(figsize=(6.8, 4.8), dpi=300)
-    wedges, texts, autotexts = ax1.pie(
+    wedges, _, autotexts = ax1.pie(
         pie_counts.values,
         labels=pie_counts.index,
         colors=pie_colors,
@@ -204,7 +204,7 @@ def plot_motivation(df: pd.DataFrame) -> None:
     pie_colors = [palette[i % len(palette)] for i in range(len(pie_counts))]
 
     fig, ax = plt.subplots(figsize=(6.8, 4.8), dpi=300)
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         pie_counts.values,
         labels=pie_counts.index,
         colors=pie_colors,
@@ -244,7 +244,7 @@ def plot_study_design(df: pd.DataFrame) -> None:
 
     palette = ["#0B3C5D", "#2A9D8F", "#A8E6CF"]
     fig, ax = plt.subplots(figsize=(6.8, 4.8), dpi=300)
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         design_counts.values,
         labels=design_counts.index,
         colors=palette,
@@ -830,7 +830,7 @@ def plot_multimodal_integration_pie(df: pd.DataFrame) -> None:
 
     palette = ["#16324F", "#A8E6CF", "#2A9D8F"]
     fig, ax = plt.subplots(figsize=(6.8, 4.8), dpi=300)
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         counts.values,
         labels=counts.index,
         colors=palette,
@@ -943,7 +943,7 @@ def plot_top_eeg_systems(df: pd.DataFrame, top_n: int = 12) -> None:
         return
 
     top_counts = sys_counts.head(top_n).sort_values(ascending=True)
-    total = int(len(df))
+    total = len(df)
 
     set_plot_style()
     plt.rcParams.update(
@@ -1381,7 +1381,7 @@ def plot_publication_year(df: pd.DataFrame) -> None:
     )
     fig.patch.set_facecolor("white")
 
-    bar_kw = dict(color="#5E8CA8", edgecolor="white", linewidth=0.8, alpha=0.9)
+    bar_kw = {"color": "#5E8CA8", "edgecolor": "white", "linewidth": 0.8, "alpha": 0.9}
     ax_l.hist(years_left, bins=bins_left, **bar_kw)
     ax_r.hist(years_right, bins=bins_right, **bar_kw)
 
@@ -1607,7 +1607,7 @@ def plot_replicability_summary(df: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(6.2, 4.8), dpi=300)
     colors = ["#2A9D8F", "#16324F"]
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         counts.values,
         labels=counts.index,
         colors=colors,
@@ -1793,7 +1793,7 @@ def plot_journal_category_pie(df: pd.DataFrame) -> None:
     colors = [palette.get(label, "#7C817A") for label in venue_counts.index]
 
     fig, ax = plt.subplots(figsize=(7.0, 4.8), dpi=300)
-    wedges, texts, autotexts = ax.pie(
+    wedges, _, autotexts = ax.pie(
         venue_counts.values,
         labels=venue_counts.index,
         colors=colors,
@@ -1813,4 +1813,177 @@ def plot_journal_category_pie(df: pd.DataFrame) -> None:
     ax.set_title("Journal Category Distribution", loc="left", pad=8, color="#1F1F1F")
     fig.tight_layout()
     export_figure(fig, "journal_category_distribution")
+    plt.close(fig)
+
+
+def plot_sensitivity_loo(loo: pd.DataFrame) -> None:
+    """Overall reporting-complete rate per leave-one-out scenario."""
+    overall = loo[loo["metric"].eq("overall")].copy()
+    if overall.empty:
+        print("  No sensitivity results; skipping sensitivity_loo plot.")
+        return
+    headline = overall.iloc[0]
+    others = overall.iloc[1:].sort_values("pct_complete")
+    plot_rows = pd.concat([headline.to_frame().T, others])
+
+    set_plot_style()
+    fig, ax = plt.subplots(figsize=(7.4, 4.2), dpi=300)
+    y = np.arange(len(plot_rows))[::-1]
+    values = plot_rows["pct_complete"].astype(float).to_numpy()
+    colors = ["#2A9D8F"] + ["#0B3C5D"] * (len(plot_rows) - 1)
+
+    ax.hlines(y, 0, values, color="#D9D7D0", linewidth=1.2)
+    ax.scatter(values, y, color=colors, s=42, zorder=3)
+    ax.axvline(
+        float(headline["pct_complete"]), color="#2A9D8F", linestyle="--", linewidth=0.9
+    )
+
+    for yi, (_, r) in zip(y, plot_rows.iterrows()):
+        ax.text(
+            float(r["pct_complete"]) + 0.4,
+            yi,
+            f"{float(r['pct_complete']):.1f}%  ({int(r['n_complete'])}/{int(r['n'])})",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="#4A4A4A",
+        )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(plot_rows["scenario"])
+    ax.set_xlim(0, max(values.max() * 1.35, 10))
+    ax.set_xlabel("Reporting-complete studies (%)", color="#3A3A3A", labelpad=6)
+    ax.set_title(
+        "Sensitivity of reporting completeness to each criterion",
+        loc="left",
+        pad=8,
+        color="#1F1F1F",
+    )
+    ax.grid(axis="x", color="#D9D7D0", linestyle="-", linewidth=0.6, alpha=0.55)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right", "left", "bottom"]:
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", length=0)
+
+    fig.tight_layout()
+    export_figure(fig, "figS_sensitivity_loo_overall")
+    plt.close(fig)
+
+
+def plot_sensitivity_subgroups(summary: pd.DataFrame) -> None:
+    """Headline value and leave-one-out range for every subgroup metric."""
+    sub = summary[summary["metric"].ne("overall")].copy()
+    if sub.empty:
+        print("  No subgroup sensitivity results; skipping plot.")
+        return
+
+    metric_titles = {
+        "venue_domain": "Publication venue",
+        "research_topic": "Research topic",
+        "country": "First-author country",
+        "system_grade": "System grade",
+        "study_design": "Study design",
+    }
+
+    set_plot_style()
+    fig, ax = plt.subplots(figsize=(7.8, 0.28 * len(sub) + 1.6), dpi=300)
+
+    labels: list[str] = []
+    y_positions: list[float] = []
+    y = 0.0
+    section_breaks: list[tuple[float, str]] = []
+    for metric, group_rows in sub.groupby("metric", sort=False):
+        section_breaks.append((y, metric_titles.get(metric, metric)))
+        y += 1.0
+        for _, r in group_rows.iterrows():
+            y_positions.append(y)
+            labels.append(f"{str(r['group'])[:40]} (n={int(r['n'])})")
+            ax.hlines(
+                y,
+                float(r["loo_min_pct_complete"]),
+                float(r["loo_max_pct_complete"]),
+                color="#9FB7C9",
+                linewidth=3,
+            )
+            ax.scatter(
+                float(r["headline_pct_complete"]), y, color="#2A9D8F", s=24, zorder=3
+            )
+            ax.scatter(
+                float(r["loo_max_pct_complete"]), y, color="#0B3C5D", s=14, zorder=3
+            )
+            y += 1.0
+        y += 0.4
+
+    for yb, title in section_breaks:
+        ax.text(
+            0, yb, title, fontsize=8.5, fontweight="bold", color="#1F1F1F", va="center"
+        )
+
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    x_max = float(sub["loo_max_pct_complete"].max())
+    ax.set_xlim(0, max(10.0, np.ceil(x_max * 1.15 / 5) * 5))
+    ax.set_xlabel("Reporting-complete studies (%)", color="#3A3A3A", labelpad=6)
+    ax.set_title(
+        "Reporting completeness by subgroup: headline (teal) and leave-one-out range",
+        loc="left",
+        pad=8,
+        color="#1F1F1F",
+    )
+    ax.grid(axis="x", color="#D9D7D0", linestyle="-", linewidth=0.6, alpha=0.55)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right", "left", "bottom"]:
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", length=0)
+
+    fig.tight_layout()
+    export_figure(fig, "figS_sensitivity_loo_subgroups")
+    plt.close(fig)
+
+
+def plot_sensitivity_threshold(threshold: pd.DataFrame) -> None:
+    """Share of studies meeting at least k of the reporting criteria."""
+    if threshold.empty:
+        print("  No threshold results; skipping sensitivity_threshold plot.")
+        return
+    thr = threshold.sort_values("min_criteria_met")
+    n_crit = int(thr["min_criteria_met"].max())
+
+    set_plot_style()
+    fig, ax = plt.subplots(figsize=(6.8, 4.2), dpi=300)
+    x = thr["min_criteria_met"].astype(int).to_numpy()
+    values = thr["pct_studies"].astype(float).to_numpy()
+    colors = ["#2A9D8F" if k == n_crit else "#0B3C5D" for k in x]
+    bars = ax.bar(x, values, color=colors, width=0.62)
+
+    for bar, (_, r) in zip(bars, thr.iterrows()):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 1.2,
+            f"{float(r['pct_studies']):.1f}%\n({int(r['n_studies'])})",
+            ha="center",
+            va="bottom",
+            fontsize=7.5,
+            color="#4A4A4A",
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"≥{k}" for k in x])
+    ax.set_ylim(0, 115)
+    ax.set_xlabel(
+        f"Minimum number of criteria met (of {n_crit})", color="#3A3A3A", labelpad=6
+    )
+    ax.set_ylabel("Studies (%)", color="#3A3A3A")
+    ax.set_title(
+        "Graded reporting-completeness threshold", loc="left", pad=8, color="#1F1F1F"
+    )
+    ax.grid(axis="y", color="#D9D7D0", linestyle="-", linewidth=0.6, alpha=0.55)
+    ax.set_axisbelow(True)
+    for spine in ["top", "right", "left", "bottom"]:
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="both", length=0)
+
+    fig.tight_layout()
+    export_figure(fig, "figS_sensitivity_threshold")
     plt.close(fig)

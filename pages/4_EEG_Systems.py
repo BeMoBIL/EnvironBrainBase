@@ -17,8 +17,7 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils import load_eeg_systems  # noqa: E402
-
+from utils import load_eeg_systems
 
 # ---------------------------------------------------------------------------
 # Score metadata

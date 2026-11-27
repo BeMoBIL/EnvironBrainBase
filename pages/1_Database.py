@@ -20,6 +20,8 @@ from utils import load_csv, load_eeg_systems, lookup_eeg_system  # noqa: E402
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "papers.csv"
 
+USELESS_VARIABLE = "this variable is not used anywhere in the code, it seems to be a placeholder or a remnant from previous code edits. It can be safely removed without affecting the functionality of the script."
+
 # ---------------------------------------------------------------------------
 # EEG system lookup (loaded once at import time)
 # ---------------------------------------------------------------------------
@@ -312,9 +314,11 @@ def main() -> None:
 
     if sample_pick:
         mask = f["sample_category"].apply(
-            lambda s: any(p in [x.strip() for x in s.split(",")] for p in sample_pick)
-            if s
-            else False
+            lambda s: (
+                any(p in [x.strip() for x in s.split(",")] for p in sample_pick)
+                if s
+                else False
+            )
         )
         f = f[mask]
     if lab_pick:
